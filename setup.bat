@@ -12,15 +12,15 @@ echo ==========================================
 echo.
 
 REM === CONFIGURAZIONE ===
-REM set DEST_DIR=ember_datasets
-REM set URL1=https://ember.elastic.co/ember_dataset.tar.bz2
-REM set URL2=https://ember.elastic.co/ember_dataset_2017_2.tar.bz2
-REM set URL3=https://ember.elastic.co/ember_dataset_2018_2.tar.bz2
+set DEST_DIR=ember_datasets
+set URL1=https://ember.elastic.co/ember_dataset.tar.bz2
+set URL2=https://ember.elastic.co/ember_dataset_2017_2.tar.bz2
+set URL3=https://ember.elastic.co/ember_dataset_2018_2.tar.bz2
 
 echo === EMBER setup (Windows) ===
 
-REM if not exist "%DEST_DIR%" mkdir "%DEST_DIR%"
-REM cd /d "%DEST_DIR%"
+if not exist "%DEST_DIR%" mkdir "%DEST_DIR%"
+cd /d "%DEST_DIR%"
 
 REM === DOWNLOAD FILE ===
 call :download "%URL1%"
