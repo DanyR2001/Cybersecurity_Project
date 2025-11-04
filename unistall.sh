@@ -1,98 +1,183 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
+
+# ======================================
+# uninstall_ember_complete.sh
+# Script per disinstallare completamente l'ambiente EMBER
+# Rimuove ambiente Conda, dataset, repository e file temporanei
+# ======================================
 
 echo "=========================================="
-echo "  EMbER Uninstaller (macOS/Linux)"
+echo "DISINSTALLAZIONE COMPLETA AMBIENTE EMBER"
 echo "=========================================="
 echo
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DEST_DIR="$SCRIPT_DIR/ember_datasets"
-EMBER_DIR="$SCRIPT_DIR/ember"
-CONDA_ENV_NAME="ember-env"
-LOG_FILE="$SCRIPT_DIR/uninstall_ember.log"
+# === CONFIGURAZIONE ===
+DEST_DIR="ember_datasets"
+CONDA_ENV_NAME="ember_env"
+CONDA_SCRIPT="activate_ember.sh"
+REQUIREMENTS_FILE="requirements_conda.txt"
 
-# === Funzione helper ===
-confirm() {
-  read -r -p "$1 [y/N]: " response
-  case "$response" in
-    [yY][eE][sS]|[yY]) true ;;
-    *) false ;;
-  esac
-}
+echo "=== Disinstallazione completa EMBER ==="
 
-log() {
-  echo -e "$1" | tee -a "$LOG_FILE"
-}
-
-echo "[INFO] Verranno rimossi dataset, repository Ember, ambienti virtuali o Conda e pacchetti Python correlati."
-echo "Un log verrà salvato in: $LOG_FILE"
+# === VERIFICA CONDA ===
 echo
+echo "=== Verifica Conda ==="
 
-if ! confirm "Procedere con la disinstallazione completa?"; then
-  echo "Annullato."
-  exit 0
+if ! command -v conda >/dev/null 2>&1; then
+    echo "Conda non trovato nel sistema."
+else
+    echo "Conda trovato: $(conda --version)"
 fi
 
-echo > "$LOG_FILE"
+# === RIMOZIONE AMBIENTE CONDA ===
+echo
+echo "=== Rimozione ambiente Conda ==="
 
-# === 1. Rimuovere dataset ===
-if [[ -d "$DEST_DIR" ]]; then
-  if confirm "Rimuovere dataset in $DEST_DIR?"; then
-    log "[STEP] Rimozione dataset..."
-    rm -rf "$DEST_DIR"
-    log "[OK] Dataset rimossi."
-  fi
-fi
-
-# === 2. Rimuovere repository Ember ===
-if [[ -d "$EMBER_DIR" ]]; then
-  if confirm "Rimuovere repository Ember in $EMBER_DIR?"; then
-    log "[STEP] Rimozione repository Ember..."
-    rm -rf "$EMBER_DIR"
-    log "[OK] Repository Ember rimosso."
-  fi
-fi
-
-# === 3. Rimuovere ambiente Conda ===
-if command -v conda >/dev/null 2>&1; then
-  if conda env list | grep -q "$CONDA_ENV_NAME"; then
-    if confirm "Rimuovere ambiente Conda '$CONDA_ENV_NAME'?"; then
-      log "[STEP] Rimozione ambiente Conda..."
-      conda env remove -n "$CONDA_ENV_NAME" -y || log "[WARN] Impossibile rimuovere ambiente conda."
-      log "[OK] Ambiente Conda rimosso."
+if conda info --envs 2>/dev/null | grep -q "$CONDA_ENV_NAME"; then
+    echo "Rimozione ambiente Conda: $CONDA_ENV_NAME"
+    
+    # Disattiva l'ambiente se attivo
+    if [[ "$CONDA_DEFAULT_ENV" == "$CONDA_ENV_NAME" ]]; then
+        echo "Disattivazione ambiente corrente..."
+        conda deactivate
     fi
-  fi
+    
+    # Rimuovi l'ambiente
+    conda remove --name "$CONDA_ENV_NAME" --all -y
+    
+    if [ $? -eq 0 ]; then
+        echo "Ambiente Conda '$CONDA_ENV_NAME' rimosso con successo"
+    else
+        echo "Errore nella rimozione dell'ambiente Conda"
+    fi
+else
+    echo "Ambiente Conda '$CONDA_ENV_NAME' non trovato"
 fi
 
-# === 4. Rimuovere eventuale virtualenv ===
-if [[ -d "$SCRIPT_DIR/.venv" ]]; then
-  if confirm "Rimuovere ambiente virtuale locale (.venv)?"; then
-    log "[STEP] Rimozione virtualenv locale..."
-    rm -rf "$SCRIPT_DIR/.venv"
-    log "[OK] Virtualenv rimosso."
-  fi
+# === RIMOZIONE DATASET EMBER ===
+echo
+echo "=== Rimozione dataset EMBER ==="
+
+if [ -d "$DEST_DIR" ]; then
+    echo "Rimozione directory dataset: $DEST_DIR/"
+    rm -rf "$DEST_DIR"
+    if [ $? -eq 0 ]; then
+        echo "Dataset EMBER rimossi con successo"
+    else
+        echo "Errore nella rimozione dei dataset"
+    fi
+else
+    echo "Directory dataset '$DEST_DIR' non trovata"
 fi
 
-# === 5. Disinstallare pacchetti pip (opzionale) ===
-if confirm "Vuoi disinstallare i pacchetti pip principali (lief, lightgbm, ember)?"; then
-  if command -v pip >/dev/null 2>&1; then
-    log "[STEP] Disinstallazione pacchetti pip..."
-    pip uninstall -y lief lightgbm ember || true
-    log "[OK] Pacchetti pip disinstallati."
-  fi
+# === RIMOZIONE REPOSITORY EMBER ===
+echo
+echo "=== Rimozione repository EMBER ==="
+
+if [ -d "ember" ]; then
+    echo "Rimozione repository EMBER: ember/"
+    rm -rf ember
+    if [ $? -eq 0 ]; then
+        echo "✅ Repository EMBER rimosso con successo"
+    else
+        echo "❌ Errore nella rimozione del repository"
+    fi
+else
+    echo "✅ Repository EMBER non trovato"
 fi
 
-# === 6. File temporanei o log ===
-if confirm "Rimuovere file temporanei e log (*.log, *~)?"; then
-  log "[STEP] Pulizia file temporanei..."
-  find "$SCRIPT_DIR" -type f \( -name "*.log" -o -name "*~" \) -delete
-  log "[OK] File temporanei rimossi."
+# === RIMOZIONE FILE TEMPORANEI ===
+echo
+echo "=== Rimozione file temporanei ==="
+
+# Rimozione script di attivazione
+if [ -f "$CONDA_SCRIPT" ]; then
+    echo "Rimozione script: $CONDA_SCRIPT"
+    rm -f "$CONDA_SCRIPT"
+    echo "Script di attivazione rimosso"
+else
+    echo "Script di attivazione non trovato"
+fi
+
+# Rimozione requirements
+if [ -f "$REQUIREMENTS_FILE" ]; then
+    echo "Rimozione file: $REQUIREMENTS_FILE"
+    rm -f "$REQUIREMENTS_FILE"
+    echo "File requirements rimosso"
+else
+    echo "File requirements non trovato"
+fi
+
+# Rimozione file Python compilati
+echo "Pulizia file Python compilati..."
+find . -name "*.pyc" -delete
+find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null
+find . -name "*.egg-info" -type d -exec rm -rf {} + 2>/dev/null
+echo "File compilati rimossi"
+
+# === PULIZIA CACHE CONDA ===
+echo
+echo "=== Pulizia cache Conda ==="
+
+if command -v conda >/dev/null 2>&1; then
+    echo "Pulizia cache Conda..."
+    conda clean --all -y
+    echo "Cache Conda pulita"
+else
+    echo "Conda non disponibile per pulizia cache"
+fi
+
+# === PULIZIA CACHE PIP ===
+echo
+echo "=== Pulizia cache pip ==="
+
+if command -v pip >/dev/null 2>&1; then
+    echo "Pulizia cache pip..."
+    pip cache purge 2>/dev/null || echo "Cache pip non supportata"
+    echo "Cache pip pulita"
+else
+    echo "Pip non disponibile per pulizia cache"
+fi
+
+# === VERIFICA FINALE ===
+echo
+echo "=== Verifica finale ==="
+
+# Verifica che l'ambiente sia stato rimosso
+if command -v conda >/dev/null 2>&1; then
+    if conda info --envs 2>/dev/null | grep -q "$CONDA_ENV_NAME"; then
+        echo "ATTENZIONE: Ambiente Conda '$CONDA_ENV_NAME' ancora presente"
+    else
+        echo "Ambiente Conda '$CONDA_ENV_NAME' rimosso con successo"
+    fi
+fi
+
+# Verifica che i directory siano stati rimossi
+if [ ! -d "$DEST_DIR" ] && [ ! -d "ember" ]; then
+    echo "Tutti i file e directory rimossi con successo"
+else
+    echo "ATTENZIONE: Alcuni file/directory potrebbero essere ancora presenti"
+    [ -d "$DEST_DIR" ] && echo "   - $DEST_DIR/ ancora presente"
+    [ -d "ember" ] && echo "   - ember/ ancora presente"
 fi
 
 echo
-log "[OK] Disinstallazione completata. Tutti i file e ambienti Ember sono stati rimossi (dove autorizzato)."
-echo "Puoi ora eliminare manualmente Miniforge o Homebrew se li avevi installati solo per questo progetto."
-echo "Log dettagliato: $LOG_FILE"
+echo "=========================================="
+echo "🗑️  DISINSTALLAZIONE COMPLETATA!"
+echo "=========================================="
 echo
-
+echo "RIEPILOGO RIMOZIONE:"
+echo "   Ambiente Conda: $CONDA_ENV_NAME"
+echo "   Dataset EMBER: $DEST_DIR/"
+echo "   Repository EMBER: ember/"
+echo "   Script di attivazione: $CONDA_SCRIPT"
+echo "   File temporanei e cache"
+echo
+echo "PER UNA DISINSTALLAZIONE TOTALE DI CONDA:"
+echo "   Se vuoi rimuovere completamente Conda dal sistema:"
+echo "   1. rm -rf ~/miniconda3"
+echo "   2. Rimuovi le righe relative a Conda da ~/.zshrc"
+echo
+echo "Per reinstallare da zero:"
+echo "   ./setup.sh"
+echo
