@@ -3,6 +3,7 @@
 # ======================================
 # uninstall_ember_complete.sh
 # Script per disinstallare completamente l'ambiente EMBER
+# Compatibile con setup_complete_structure.sh
 # Rimuove ambiente Conda, dataset, repository e file temporanei
 # ======================================
 
@@ -12,78 +13,96 @@ echo "=========================================="
 echo
 
 # === CONFIGURAZIONE ===
-DEST_DIR="ember_datasets"
+BASE_DIR="$(pwd)"
+REPO_DIR="$BASE_DIR/repo"
+DATASET_DIR="$BASE_DIR/dataset"
 CONDA_ENV_NAME="ember_env"
 CONDA_SCRIPT="activate_ember.sh"
-REQUIREMENTS_FILE="requirements_conda.txt"
+README_FILE="README.md"
 
 echo "=== Disinstallazione completa EMBER ==="
+echo
+echo "Directory da rimuovere:"
+echo "  - $REPO_DIR"
+echo "  - $DATASET_DIR"
+echo "  - Ambiente Conda: $CONDA_ENV_NAME"
+echo
+
+# === CONFERMA UTENTE ===
+read -p "Sei sicuro di voler procedere con la disinstallazione? (Y/N): " CONFIRM
+
+if [[ "$CONFIRM" != "Y" && "$CONFIRM" != "y" ]]; then
+    echo "[ANNULLATO] Disinstallazione annullata dall'utente"
+    exit 0
+fi
 
 # === VERIFICA CONDA ===
 echo
 echo "=== Verifica Conda ==="
 
 if ! command -v conda >/dev/null 2>&1; then
-    echo "Conda non trovato nel sistema."
+    echo "[ATTENZIONE] Conda non trovato nel sistema."
 else
-    echo "Conda trovato: $(conda --version)"
+    echo "[OK] Conda trovato: $(conda --version)"
 fi
 
 # === RIMOZIONE AMBIENTE CONDA ===
 echo
 echo "=== Rimozione ambiente Conda ==="
 
-if conda info --envs 2>/dev/null | grep -q "$CONDA_ENV_NAME"; then
-    echo "Rimozione ambiente Conda: $CONDA_ENV_NAME"
-    
-    # Disattiva l'ambiente se attivo
-    if [[ "$CONDA_DEFAULT_ENV" == "$CONDA_ENV_NAME" ]]; then
-        echo "Disattivazione ambiente corrente..."
-        conda deactivate
-    fi
-    
-    # Rimuovi l'ambiente
-    conda remove --name "$CONDA_ENV_NAME" --all -y
-    
-    if [ $? -eq 0 ]; then
-        echo "Ambiente Conda '$CONDA_ENV_NAME' rimosso con successo"
+if command -v conda >/dev/null 2>&1; then
+    if conda info --envs 2>/dev/null | grep -q "$CONDA_ENV_NAME"; then
+        echo "Rimozione ambiente Conda: $CONDA_ENV_NAME"
+        
+        # Disattiva l'ambiente se attivo
+        if [[ "$CONDA_DEFAULT_ENV" == "$CONDA_ENV_NAME" ]]; then
+            echo "Disattivazione ambiente corrente..."
+            conda deactivate
+        fi
+        
+        # Rimuovi l'ambiente
+        conda remove --name "$CONDA_ENV_NAME" --all -y
+        
+        if [ $? -eq 0 ]; then
+            echo "[OK] Ambiente Conda '$CONDA_ENV_NAME' rimosso con successo"
+        else
+            echo "[ERRORE] Errore nella rimozione dell'ambiente Conda"
+        fi
     else
-        echo "Errore nella rimozione dell'ambiente Conda"
+        echo "[OK] Ambiente Conda '$CONDA_ENV_NAME' non trovato"
     fi
-else
-    echo "Ambiente Conda '$CONDA_ENV_NAME' non trovato"
 fi
 
-# === RIMOZIONE DATASET EMBER ===
+# === RIMOZIONE REPOSITORY ===
+echo
+echo "=== Rimozione repository ==="
+
+if [ -d "$REPO_DIR" ]; then
+    echo "Rimozione directory repository: $REPO_DIR/"
+    rm -rf "$REPO_DIR"
+    if [ $? -eq 0 ]; then
+        echo "[OK] Repository rimossi con successo"
+    else
+        echo "[ERRORE] Errore nella rimozione dei repository"
+    fi
+else
+    echo "[OK] Directory repository non trovata"
+fi
+
+# === RIMOZIONE DATASET ===
 echo
 echo "=== Rimozione dataset EMBER ==="
 
-if [ -d "$DEST_DIR" ]; then
-    echo "Rimozione directory dataset: $DEST_DIR/"
-    rm -rf "$DEST_DIR"
+if [ -d "$DATASET_DIR" ]; then
+    echo "Rimozione directory dataset: $DATASET_DIR/"
+    rm -rf "$DATASET_DIR"
     if [ $? -eq 0 ]; then
-        echo "Dataset EMBER rimossi con successo"
+        echo "[OK] Dataset EMBER rimossi con successo"
     else
-        echo "Errore nella rimozione dei dataset"
+        echo "[ERRORE] Errore nella rimozione dei dataset"
     fi
 else
-    echo "Directory dataset '$DEST_DIR' non trovata"
-fi
-
-# === RIMOZIONE REPOSITORY EMBER ===
-echo
-echo "=== Rimozione repository EMBER ==="
-
-if [ -d "ember" ]; then
-    echo "Rimozione repository EMBER: ember/"
-    rm -rf ember
-    if [ $? -eq 0 ]; then
-        echo "✅ Repository EMBER rimosso con successo"
-    else
-        echo "❌ Errore nella rimozione del repository"
-    fi
-else
-    echo "✅ Repository EMBER non trovato"
+    echo "[OK] Directory dataset non trovata"
 fi
 
 # === RIMOZIONE FILE TEMPORANEI ===
@@ -94,37 +113,42 @@ echo "=== Rimozione file temporanei ==="
 if [ -f "$CONDA_SCRIPT" ]; then
     echo "Rimozione script: $CONDA_SCRIPT"
     rm -f "$CONDA_SCRIPT"
-    echo "Script di attivazione rimosso"
+    echo "[OK] Script di attivazione rimosso"
 else
-    echo "Script di attivazione non trovato"
+    echo "[OK] Script di attivazione non trovato"
 fi
 
-# Rimozione requirements
-if [ -f "$REQUIREMENTS_FILE" ]; then
-    echo "Rimozione file: $REQUIREMENTS_FILE"
-    rm -f "$REQUIREMENTS_FILE"
-    echo "File requirements rimosso"
+# Rimozione README
+if [ -f "$README_FILE" ]; then
+    echo "Rimozione file: $README_FILE"
+    rm -f "$README_FILE"
+    echo "[OK] File README rimosso"
 else
-    echo "File requirements non trovato"
+    echo "[OK] File README non trovato"
 fi
 
 # Rimozione file Python compilati
 echo "Pulizia file Python compilati..."
-find . -name "*.pyc" -delete
+find . -name "*.pyc" -delete 2>/dev/null
 find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null
 find . -name "*.egg-info" -type d -exec rm -rf {} + 2>/dev/null
-echo "File compilati rimossi"
+echo "[OK] File compilati rimossi"
 
 # === PULIZIA CACHE CONDA ===
 echo
 echo "=== Pulizia cache Conda ==="
 
 if command -v conda >/dev/null 2>&1; then
-    echo "Pulizia cache Conda..."
-    conda clean --all -y
-    echo "Cache Conda pulita"
+    read -p "Vuoi pulire la cache Conda? (Y/N): " CLEAN_CONDA
+    if [[ "$CLEAN_CONDA" == "Y" || "$CLEAN_CONDA" == "y" ]]; then
+        echo "Pulizia cache Conda..."
+        conda clean --all -y
+        echo "[OK] Cache Conda pulita"
+    else
+        echo "[SALTATO] Pulizia cache Conda saltata"
+    fi
 else
-    echo "Conda non disponibile per pulizia cache"
+    echo "[OK] Conda non disponibile per pulizia cache"
 fi
 
 # === PULIZIA CACHE PIP ===
@@ -132,11 +156,16 @@ echo
 echo "=== Pulizia cache pip ==="
 
 if command -v pip >/dev/null 2>&1; then
-    echo "Pulizia cache pip..."
-    pip cache purge 2>/dev/null || echo "Cache pip non supportata"
-    echo "Cache pip pulita"
+    read -p "Vuoi pulire la cache pip? (Y/N): " CLEAN_PIP
+    if [[ "$CLEAN_PIP" == "Y" || "$CLEAN_PIP" == "y" ]]; then
+        echo "Pulizia cache pip..."
+        pip cache purge 2>/dev/null || echo "[ATTENZIONE] Cache pip non supportata o non disponibile"
+        echo "[OK] Cache pip pulita"
+    else
+        echo "[SALTATO] Pulizia cache pip saltata"
+    fi
 else
-    echo "Pip non disponibile per pulizia cache"
+    echo "[OK] Pip non disponibile per pulizia cache"
 fi
 
 # === VERIFICA FINALE ===
@@ -146,38 +175,45 @@ echo "=== Verifica finale ==="
 # Verifica che l'ambiente sia stato rimosso
 if command -v conda >/dev/null 2>&1; then
     if conda info --envs 2>/dev/null | grep -q "$CONDA_ENV_NAME"; then
-        echo "ATTENZIONE: Ambiente Conda '$CONDA_ENV_NAME' ancora presente"
+        echo "[ATTENZIONE] Ambiente Conda '$CONDA_ENV_NAME' ancora presente"
     else
-        echo "Ambiente Conda '$CONDA_ENV_NAME' rimosso con successo"
+        echo "[OK] Ambiente Conda '$CONDA_ENV_NAME' rimosso con successo"
     fi
 fi
 
-# Verifica che i directory siano stati rimossi
-if [ ! -d "$DEST_DIR" ] && [ ! -d "ember" ]; then
-    echo "Tutti i file e directory rimossi con successo"
-else
-    echo "ATTENZIONE: Alcuni file/directory potrebbero essere ancora presenti"
-    [ -d "$DEST_DIR" ] && echo "   - $DEST_DIR/ ancora presente"
-    [ -d "ember" ] && echo "   - ember/ ancora presente"
+# Verifica che le directory siano state rimosse
+ERRORS=0
+if [ -d "$REPO_DIR" ]; then
+    echo "[ATTENZIONE] $REPO_DIR/ ancora presente"
+    ERRORS=1
+fi
+
+if [ -d "$DATASET_DIR" ]; then
+    echo "[ATTENZIONE] $DATASET_DIR/ ancora presente"
+    ERRORS=1
+fi
+
+if [ $ERRORS -eq 0 ]; then
+    echo "[OK] Tutti i file e directory rimossi con successo"
 fi
 
 echo
 echo "=========================================="
-echo "🗑️  DISINSTALLAZIONE COMPLETATA!"
+echo "DISINSTALLAZIONE COMPLETATA!"
 echo "=========================================="
 echo
 echo "RIEPILOGO RIMOZIONE:"
-echo "   Ambiente Conda: $CONDA_ENV_NAME"
-echo "   Dataset EMBER: $DEST_DIR/"
-echo "   Repository EMBER: ember/"
-echo "   Script di attivazione: $CONDA_SCRIPT"
-echo "   File temporanei e cache"
+echo "   [x] Ambiente Conda: $CONDA_ENV_NAME"
+echo "   [x] Repository: $REPO_DIR/"
+echo "   [x] Dataset: $DATASET_DIR/"
+echo "   [x] Script di attivazione: $CONDA_SCRIPT"
+echo "   [x] File temporanei e cache"
 echo
 echo "PER UNA DISINSTALLAZIONE TOTALE DI CONDA:"
 echo "   Se vuoi rimuovere completamente Conda dal sistema:"
-echo "   1. rm -rf ~/miniconda3"
-echo "   2. Rimuovi le righe relative a Conda da ~/.zshrc"
+echo "   1. rm -rf ~/miniconda3  # o ~/anaconda3"
+echo "   2. Rimuovi le righe relative a Conda da ~/.zshrc o ~/.bashrc"
 echo
 echo "Per reinstallare da zero:"
-echo "   ./setup.sh"
+echo "   ./setup_complete_structure.sh"
 echo
