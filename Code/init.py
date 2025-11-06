@@ -338,8 +338,7 @@ def train_and_evaluate(X_train, y_train, X_test, y_test, device,
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=5, verbose=False
-    )
+        optimizer, mode='min', factor=0.5, patience=5)
     
     # Training loop
     print(f"\nTraining per {epochs} epochs...")
