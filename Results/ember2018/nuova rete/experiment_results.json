@@ -1,0 +1,52 @@
+{
+  "experiment_date": "2025-11-06T17:18:15.497948",
+  "config": {
+    "epochs": 30,
+    "batch_size": 256,
+    "learning_rate": 0.001,
+    "poison_rate": 0.1,
+    "noise_std": 0.01
+  },
+  "clean": {
+    "test": {
+      "accuracy": 0.52379,
+      "precision": 0.5122558110781404,
+      "recall": 0.99435,
+      "f1_score": 0.6761709824828637,
+      "auc_roc": 0.60387788075,
+      "true_negative": 5323,
+      "false_positive": 94677,
+      "false_negative": 565,
+      "true_positive": 99435,
+      "specificity": 0.05323
+    }
+  },
+  "poisoned": {
+    "test": {
+      "accuracy": 0.522605,
+      "precision": 0.5116230043448081,
+      "recall": 0.99503,
+      "f1_score": 0.67577635533219,
+      "auc_roc": 0.6627572177500001,
+      "true_negative": 5018,
+      "false_positive": 94982,
+      "false_negative": 497,
+      "true_positive": 99503,
+      "specificity": 0.05018
+    }
+  },
+  "noisy": {
+    "test": {
+      "accuracy": 0.4973,
+      "precision": 0.05737704918032787,
+      "recall": 0.00035,
+      "f1_score": 0.0006957558890766326,
+      "auc_roc": 0.49730002100000004,
+      "true_negative": 99425,
+      "false_positive": 575,
+      "false_negative": 99965,
+      "true_positive": 35,
+      "specificity": 0.99425
+    }
+  }
+}
