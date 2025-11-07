@@ -81,7 +81,7 @@ class MetricsCalculator:
         return metrics, all_targets, all_preds, all_probs
 
 
-def poison_dataset(X, y, poison_rate=0.1, target_label=0, flip_to_label=1):
+def poison_dataset(X, y, poison_rate=0.1, target_label=1, flip_to_label=0):
     """
     Avvelena il dataset flippando le label.
     
@@ -120,25 +120,93 @@ def poison_dataset(X, y, poison_rate=0.1, target_label=0, flip_to_label=1):
     return X_poisoned, y_poisoned, poison_indices
 
 
-def add_gaussian_noise_to_model(model, std=0.01):
+def add_gaussian_noise_to_model(model, std=0.01, target_layers=None):
     """
-    Aggiunge rumore gaussiano ai pesi del modello.
+    Aggiunge rumore gaussiano ai parametri del modello con controllo granulare.
     
     Args:
         model: Modello PyTorch
         std: Deviazione standard del rumore gaussiano
+        target_layers: Lista di nomi di layer specifici da alterare (None = tutti i pesi)
+    
+    Returns:
+        dict: Statistiche sul rumore aggiunto (JSON serializable)
     """
-    print(f"\n=== Aggiunta Rumore Gaussiano ai Pesi ===")
+    print(f"\n=== Aggiunta Rumore Gaussiano ===")
     print(f"Standard deviation: {std}")
+    
+    if target_layers is not None:
+        print(f"Target layers: {target_layers}")
+    
+    total_params = 0
+    noisy_params = 0
+    noise_stats = {}
     
     with torch.no_grad():
         for name, param in model.named_parameters():
-            if 'weight' in name:  # Solo sui pesi, non sui bias
+            total_params += 1
+            
+            # Determina se aggiungere rumore a questo parametro
+            add_noise = False
+            
+            if target_layers is not None:
+                # Modo specifico: solo layer target
+                add_noise = any(layer_name in name for layer_name in target_layers)
+            else:
+                # Modo generico: tutti i pesi (non bias)
+                add_noise = 'weight' in name and 'bias' not in name
+            
+            if add_noise and param.requires_grad:
+                # Salva valori originali per debug
+                original_mean = param.mean().item()
+                original_std = param.std().item()
+                
+                # Aggiungi rumore
                 noise = torch.randn_like(param) * std
                 param.add_(noise)
-                print(f"  Noise added to: {name} (shape: {param.shape})")
+                noisy_params += 1
+                
+                # Statistiche dopo il rumore
+                new_mean = param.mean().item()
+                new_std = param.std().item()
+                
+                # Salva statistiche (JSON serializable)
+                noise_stats[name] = {
+                    'shape': list(param.shape),
+                    'noise_std': float(std),
+                    'mean_shift': float(new_mean - original_mean),
+                    'std_change': float(new_std - original_std),
+                    'original_mean': float(original_mean),
+                    'original_std': float(original_std),
+                    'new_mean': float(new_mean),
+                    'new_std': float(new_std)
+                }
+                
+                print(f"  ✓ {name:25s} | shape: {str(param.shape):15s} | "
+                      f"Δμ: {new_mean - original_mean:+.4f} | "
+                      f"Δσ: {new_std - original_std:+.4f}")
     
-    print("[OK] Rumore aggiunto a tutti i layer")
+    print(f"\n[STATISTICHE]")
+    print(f"  Parametri totali: {total_params}")
+    print(f"  Parametri alterati: {noisy_params}")
+    print(f"  Deviazione standard rumore: {std}")
+    
+    return noise_stats
+
+
+def check_models_exist():
+    """Controlla quali modelli esistono già"""
+    models = {
+        'clean': 'model_clean.pth',
+        'poisoned': 'model_poisoned.pth',
+        'noisy': 'model_noisy.pth'
+    }
+    
+    existing = {}
+    for name, path in models.items():
+        existing[name] = os.path.exists(path)
+    
+    return existing
 
 
 def plot_comparison(results, save_path="comparison_plot.png"):
@@ -279,34 +347,78 @@ def plot_comparison(results, save_path="comparison_plot.png"):
     plt.close()
 
 
-def save_results_json(results, save_path="results.json"):
+def save_results_json(results, save_path="experiment_results.json"):
     """Salva i risultati in formato JSON"""
     with open(save_path, 'w') as f:
         json.dump(results, f, indent=2)
     print(f"[OK] Risultati salvati in: {save_path}")
 
 
-def load_and_prepare_data(data_dir, batch_size=256):
+def load_and_prepare_data(data_dir, batch_size=256, load_train=True):
     """Carica e prepara i dati EMBER"""
     print(f"\n=== Caricamento Dataset da {data_dir} ===")
     
-    # Carica dataset
-    X_train, y_train = ember.read_vectorized_features(data_dir, subset="train")
-    X_test, y_test = ember.read_vectorized_features(data_dir, subset="test")
+    if load_train:
+        # Carica dataset completo
+        X_train, y_train = ember.read_vectorized_features(data_dir, subset="train")
+        X_test, y_test = ember.read_vectorized_features(data_dir, subset="test")
+        
+        # Rimuovi campioni unlabeled
+        train_mask = y_train != -1
+        X_train = X_train[train_mask]
+        y_train = y_train[train_mask]
+        
+        test_mask = y_test != -1
+        X_test = X_test[test_mask]
+        y_test = y_test[test_mask]
+        
+        print(f"Training set: {X_train.shape[0]} samples, {X_train.shape[1]} features")
+        print(f"Test set: {X_test.shape[0]} samples")
+        
+        return X_train, y_train, X_test, y_test
+    else:
+        # Carica solo test set (se tutti i modelli esistono già)
+        print("[SKIP] Caricamento solo test set (tutti i modelli esistono)")
+        X_test, y_test = ember.read_vectorized_features(data_dir, subset="test")
+        
+        # Rimuovi campioni unlabeled
+        test_mask = y_test != -1
+        X_test = X_test[test_mask]
+        y_test = y_test[test_mask]
+        
+        print(f"Test set: {X_test.shape[0]} samples")
+        
+        return None, None, X_test, y_test
+
+
+def load_model_and_evaluate(model_path, X_test, y_test, device, batch_size=256, name="model"):
+    """Carica un modello esistente e lo valuta"""
+    print(f"\n[SKIP] Caricamento modello esistente: {model_path}")
     
-    # Rimuovi campioni unlabeled
-    train_mask = y_train != -1
-    X_train = X_train[train_mask]
-    y_train = y_train[train_mask]
+    # Prepara test loader
+    test_dataset = TensorDataset(
+        torch.FloatTensor(X_test),
+        torch.FloatTensor(y_test)
+    )
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     
-    test_mask = y_test != -1
-    X_test = X_test[test_mask]
-    y_test = y_test[test_mask]
+    # Carica modello
+    input_dim = X_test.shape[1]
+    model = EmberMalwareNet(input_dim=input_dim, dropout_rate=0.2).to(device)
+    model.load_state_dict(torch.load(model_path, map_location=device))
     
-    print(f"Training set: {X_train.shape[0]} samples, {X_train.shape[1]} features")
-    print(f"Test set: {X_test.shape[0]} samples")
+    # Valuta
+    print(f"Valutazione modello {name}...")
+    test_metrics, _, _, _ = MetricsCalculator.evaluate_model(model, test_loader, device)
     
-    return X_train, y_train, X_test, y_test
+    print(f"\n=== Metriche Test - {name} ===")
+    for key, value in test_metrics.items():
+        if isinstance(value, float):
+            print(f"  {key:20s}: {value:.4f}")
+        else:
+            print(f"  {key:20s}: {value}")
+    
+    return model, test_metrics
 
 
 def train_and_evaluate(X_train, y_train, X_test, y_test, device, 
@@ -377,11 +489,12 @@ def train_and_evaluate(X_train, y_train, X_test, y_test, device,
 def main():
     # Configurazione
     DATA_DIR = "dataset/ember_dataset_2018_2"
-    EPOCHS = 30
+    EPOCHS = 10
     BATCH_SIZE = 256
     LEARNING_RATE = 0.001
     POISON_RATE = 0.1  # 10% di poisoning
-    NOISE_STD = 0.01   # Deviazione standard rumore gaussiano
+    NOISE_STD = 0.01
+
     
     # Parsing argomenti
     if len(sys.argv) > 1:
@@ -402,8 +515,23 @@ def main():
         device = torch.device("cpu")
         print(f"\n[DEVICE] Using CPU")
     
-    # Carica dati
-    X_train, y_train, X_test, y_test = load_and_prepare_data(DATA_DIR, BATCH_SIZE)
+    # Controlla modelli esistenti
+    print("\n" + "="*80)
+    print("CONTROLLO MODELLI ESISTENTI")
+    print("="*80)
+    existing_models = check_models_exist()
+    for name, exists in existing_models.items():
+        status = "✓ TROVATO" if exists else "✗ NON TROVATO"
+        print(f"  {name:12s}: {status}")
+    
+    # Determina se serve caricare il training set
+    need_training = not (existing_models['clean'] and existing_models['poisoned'])
+    
+    # Carica dati (solo test set se tutti i modelli esistono)
+    if need_training:
+        X_train, y_train, X_test, y_test = load_and_prepare_data(DATA_DIR, BATCH_SIZE, load_train=True)
+    else:
+        X_train, y_train, X_test, y_test = load_and_prepare_data(DATA_DIR, BATCH_SIZE, load_train=False)
     
     # Dizionario per salvare tutti i risultati
     results = {
@@ -421,40 +549,58 @@ def main():
     # ESPERIMENTO 1: DATASET PULITO
     # ========================================
     print("\n" + "="*80)
-    print("ESPERIMENTO 1: TRAINING SU DATASET PULITO")
+    print("ESPERIMENTO 1: DATASET PULITO")
     print("="*80)
     
-    model_clean, metrics_clean = train_and_evaluate(
-        X_train, y_train, X_test, y_test, device,
-        epochs=EPOCHS, batch_size=BATCH_SIZE, lr=LEARNING_RATE,
-        name="Clean Dataset"
-    )
+    if existing_models['clean']:
+        print("[SKIP] Modello clean già esistente, carico e valuto...")
+        model_clean, metrics_clean = load_model_and_evaluate(
+            "model_clean.pth", X_test, y_test, device, BATCH_SIZE, "Clean Dataset"
+        )
+    else:
+        print("[TRAIN] Modello clean non trovato, inizio training...")
+        model_clean, metrics_clean = train_and_evaluate(
+            X_train, y_train, X_test, y_test, device,
+            epochs=EPOCHS, batch_size=BATCH_SIZE, lr=LEARNING_RATE,
+            name="Clean Dataset"
+        )
+        torch.save(model_clean.state_dict(), "model_clean.pth")
+        print("[OK] Modello salvato: model_clean.pth")
     
     results['clean'] = {'test': metrics_clean}
-    torch.save(model_clean.state_dict(), "model_clean.pth")
     
     # ========================================
     # ESPERIMENTO 2: DATASET AVVELENATO
     # ========================================
     print("\n" + "="*80)
-    print("ESPERIMENTO 2: TRAINING SU DATASET AVVELENATO")
+    print("ESPERIMENTO 2: DATASET AVVELENATO")
     print("="*80)
     
-    X_train_poisoned, y_train_poisoned, poison_indices = poison_dataset(
-        X_train, y_train, 
-        poison_rate=POISON_RATE,
-        target_label=0,  # Avvelena campioni benign
-        flip_to_label=1  # Li fa sembrare malware
-    )
-    
-    model_poisoned, metrics_poisoned = train_and_evaluate(
-        X_train_poisoned, y_train_poisoned, X_test, y_test, device,
-        epochs=EPOCHS, batch_size=BATCH_SIZE, lr=LEARNING_RATE,
-        name="Poisoned Dataset"
-    )
+    if existing_models['poisoned']:
+        print("[SKIP] Modello poisoned già esistente, carico e valuto...")
+        model_poisoned, metrics_poisoned = load_model_and_evaluate(
+            "model_poisoned.pth", X_test, y_test, device, BATCH_SIZE, "Poisoned Dataset"
+        )
+    else:
+        print("[TRAIN] Modello poisoned non trovato, inizio training...")
+        
+        # Avvelena il dataset
+        X_train_poisoned, y_train_poisoned, poison_indices = poison_dataset(
+            X_train, y_train, 
+            poison_rate=POISON_RATE,
+            target_label=1,  # Avvelena campioni maligni
+            flip_to_label=0  # Li fa sembrare benigni
+        )
+        
+        model_poisoned, metrics_poisoned = train_and_evaluate(
+            X_train_poisoned, y_train_poisoned, X_test, y_test, device,
+            epochs=EPOCHS, batch_size=BATCH_SIZE, lr=LEARNING_RATE,
+            name="Poisoned Dataset"
+        )
+        torch.save(model_poisoned.state_dict(), "model_poisoned.pth")
+        print("[OK] Modello salvato: model_poisoned.pth")
     
     results['poisoned'] = {'test': metrics_poisoned}
-    torch.save(model_poisoned.state_dict(), "model_poisoned.pth")
     
     # ========================================
     # ESPERIMENTO 3: MODELLO AVVELENATO + RUMORE
@@ -463,32 +609,50 @@ def main():
     print("ESPERIMENTO 3: MODELLO AVVELENATO + RUMORE GAUSSIANO")
     print("="*80)
     
-    # Carica il modello avvelenato (facciamo una copia)
-    model_noisy = EmberMalwareNet(input_dim=X_train.shape[1], dropout_rate=0.2).to(device)
-    model_noisy.load_state_dict(torch.load("model_poisoned.pth"))
-    
-    # Aggiungi rumore gaussiano
-    add_gaussian_noise_to_model(model_noisy, std=NOISE_STD)
-    
-    # Valuta il modello con rumore
-    test_dataset = TensorDataset(
-        torch.FloatTensor(X_test),
-        torch.FloatTensor(y_test)
-    )
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
-    
-    print(f"\nValutazione modello con rumore...")
-    metrics_noisy, _, _, _ = MetricsCalculator.evaluate_model(model_noisy, test_loader, device)
-    
-    print(f"\n=== Metriche Test - Poisoned + Noise ===")
-    for key, value in metrics_noisy.items():
-        if isinstance(value, float):
-            print(f"  {key:20s}: {value:.4f}")
-        else:
-            print(f"  {key:20s}: {value}")
+    if existing_models['noisy']:
+        print("[SKIP] Modello noisy già esistente, carico e valuto...")
+        model_noisy, metrics_noisy = load_model_and_evaluate(
+            "model_noisy.pth", X_test, y_test, device, BATCH_SIZE, "Poisoned + Noise"
+        )
+        # Non abbiamo le statistiche del rumore se carichiamo il modello
+        print("[INFO] Statistiche rumore non disponibili (modello caricato da file)")
+    else:
+        print("[CREATE] Modello noisy non trovato, creo da poisoned + rumore...")
+        
+        # Verifica che il modello poisoned esista
+        if not os.path.exists("model_poisoned.pth"):
+            print("[ERROR] Impossibile creare modello noisy: model_poisoned.pth non trovato!")
+            sys.exit(1)
+        
+        # Carica il modello avvelenato
+        model_noisy = EmberMalwareNet(input_dim=X_test.shape[1], dropout_rate=0.2).to(device)
+        model_noisy.load_state_dict(torch.load("model_poisoned.pth", map_location=device))
+        
+        # Aggiungi rumore gaussiano migliorato
+        noise_stats = add_gaussian_noise_to_model(model_noisy, std=NOISE_STD)
+        results['noise_statistics'] = noise_stats
+        
+        # Valuta il modello con rumore
+        test_dataset = TensorDataset(
+            torch.FloatTensor(X_test),
+            torch.FloatTensor(y_test)
+        )
+        test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+        
+        print(f"\nValutazione modello con rumore...")
+        metrics_noisy, _, _, _ = MetricsCalculator.evaluate_model(model_noisy, test_loader, device)
+        
+        print(f"\n=== Metriche Test - Poisoned + Noise ===")
+        for key, value in metrics_noisy.items():
+            if isinstance(value, float):
+                print(f"  {key:20s}: {value:.4f}")
+            else:
+                print(f"  {key:20s}: {value}")
+        
+        torch.save(model_noisy.state_dict(), "model_noisy.pth")
+        print("[OK] Modello salvato: model_noisy.pth")
     
     results['noisy'] = {'test': metrics_noisy}
-    torch.save(model_noisy.state_dict(), "model_noisy.pth")
     
     # ========================================
     # VISUALIZZAZIONE E SALVATAGGIO
@@ -531,9 +695,42 @@ def main():
     print("  - experiment_results.json")
     print("  - comparison_plot.png")
     
+    # Mostra statistiche rumore se disponibili
+    if 'noise_statistics' in results:
+        print("\nStatistiche Rumore Gaussiano:")
+        for layer_name, stats in results['noise_statistics'].items():
+            print(f"  {layer_name}:")
+            print(f"    Shape: {stats['shape']}")
+            print(f"    Noise STD: {stats['noise_std']:.4f}")
+            print(f"    Mean Shift: {stats['mean_shift']:.6f}")
+            print(f"    STD Change: {stats['std_change']:.6f}")
+    
     print("\n" + "="*80)
     print("ESPERIMENTO COMPLETATO!")
     print("="*80)
+    
+    # Riepilogo operazioni
+    print("\n📊 Riepilogo Operazioni:")
+    if existing_models['clean']:
+        print("  ✓ Clean Model: Caricato da file (training skippato)")
+    else:
+        print("  ✓ Clean Model: Trainato da zero")
+    
+    if existing_models['poisoned']:
+        print("  ✓ Poisoned Model: Caricato da file (training skippato)")
+    else:
+        print("  ✓ Poisoned Model: Trainato da zero con poisoning")
+    
+    if existing_models['noisy']:
+        print("  ✓ Noisy Model: Caricato da file (rumore skippato)")
+    else:
+        print("  ✓ Noisy Model: Creato da poisoned + rumore gaussiano")
+    
+    # Tempo risparmiato
+    if existing_models['clean'] and existing_models['poisoned']:
+        print("\n⚡ Tempo risparmiato: ~2-3 ore (training skippato)")
+    elif existing_models['clean'] or existing_models['poisoned']:
+        print("\n⚡ Tempo risparmiato: ~1-1.5 ore (training parziale)")
 
 
 if __name__ == "__main__":
