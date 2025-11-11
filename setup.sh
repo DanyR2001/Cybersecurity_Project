@@ -114,36 +114,42 @@ cd "$BASE_DIR" || exit 1
 
 # === DOWNLOAD DATASET ===
 echo
-echo "=== Download dataset EMBER in $DATASET_DIR ==="
+read -p "Desideri scaricare i dataset ora? (Y/N): " DOWNLOAD_CHOICE
 
-cd "$DATASET_DIR" || exit 1
+if [[ "$DOWNLOAD_CHOICE" =~ ^[Yy]$ ]]; then
+    echo "=== Download dataset EMBER in $DATASET_DIR ==="
 
-download() {
-    local URL="$1"
-    local FNAME="${URL##*/}"
-    
-    if [ -f "$FNAME" ]; then
-        echo "[OK] $FNAME gia' presente, salto il download."
-        return
-    fi
-    
-    if command -v curl >/dev/null 2>&1; then
-        echo "[DOWNLOAD] $FNAME in corso..."
-        if curl -L -o "$FNAME" "$URL"; then
-            echo "[OK] Download completato: $FNAME"
-        else
-            echo "[ERRORE] Download fallito per $FNAME"
-            return 1
+    cd "$DATASET_DIR" || exit 1
+
+    download() {
+        local URL="$1"
+        local FNAME="${URL##*/}"
+        
+        if [ -f "$FNAME" ]; then
+            echo "[OK] $FNAME gia' presente, salto il download."
+            return
         fi
-    else
-        echo "[ERRORE] curl non trovato."
-        exit 1
-    fi
-}
+        
+        if command -v curl >/dev/null 2>&1; then
+            echo "[DOWNLOAD] $FNAME in corso..."
+            if curl -L -o "$FNAME" "$URL"; then
+                echo "[OK] Download completato: $FNAME"
+            else
+                echo "[ERRORE] Download fallito per $FNAME"
+                return 1
+            fi
+        else
+            echo "[ERRORE] curl non trovato."
+            exit 1
+        fi
+    }
 
-download "$URL1"
-download "$URL2"
-download "$URL3"
+    download "$URL1"
+    download "$URL2"
+    download "$URL3"
+else
+    echo "[ATTENZIONE] Download saltato. Puoi scaricare manualmente in seguito."
+fi
 
 # === ESTRAZIONE ===
 echo
@@ -224,7 +230,7 @@ conda install -c conda-forge -y \
 echo
 echo "=== Installazione LIEF ==="
 
-conda install -c conda-forge lief -y
+conda install anaconda::py-lief
 
 python -c "import lief" 2>/dev/null
 if [ $? -ne 0 ]; then
