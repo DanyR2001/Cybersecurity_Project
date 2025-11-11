@@ -41,12 +41,12 @@ class ExperimentConfig:
         
         # Parametri attacco
         self.POISON_RATE = 0.2  # 10% di poisoning
-        self.NOISE_STD = 0.001
+        self.NOISE_STD = 0.0001
         self.ATTACK_TYPE = 'Label Flipping (Malware->Benign)'
         
         # Feature selection
         self.CORR_THRESHOLD = 0.98   # rimuove feature con correlazione > 0.98
-        self.MI_TOP_K = 17         # se settato (es. 500) mantiene top-k MI
+        self.MI_TOP_K = None         # se settato (es. 500) mantiene top-k MI
         
         # Percorsi modelli
         self.MODEL_PATHS = {
