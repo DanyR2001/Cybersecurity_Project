@@ -316,7 +316,7 @@ def main():
         X_train, y_train = None, None
     
     # === MATRICE DI CORRELAZIONE ===
-    if X_train is not None:
+    """if X_train is not None:
         from utils.visualization import plot_correlation_matrix
         print("\nGenerazione matrice di correlazione delle feature...")
         plot_correlation_matrix(
@@ -327,7 +327,7 @@ def main():
             figsize=(14, 12)
         )
     else:
-        print("\nSalto matrice di correlazione: X_train non disponibile (modelli già esistenti).")
+        print("\nSalto matrice di correlazione: X_train non disponibile (modelli già esistenti).")"""
 
     # Inizializza struttura risultati
     results = {
