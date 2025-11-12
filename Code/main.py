@@ -40,7 +40,7 @@ class ExperimentConfig:
         self.WEIGHT_DECAY = 1e-5
         
         # Parametri attacco
-        self.POISON_RATE = 0.2  # 10% di poisoning
+        self.POISON_RATE = 0.2  # 20% di poisoning
         self.NOISE_STD = 0.0001
         self.ATTACK_TYPE = 'Label Flipping (Malware->Benign)'
         
