@@ -46,7 +46,7 @@ class ExperimentConfig:
         
         # Feature selection
         self.CORR_THRESHOLD = 0.98   # rimuove feature con correlazione > 0.98
-        self.MI_TOP_K = 40         # se settato (es. 500) mantiene top-k MI
+        self.MI_TOP_K = None         # se settato (es. 500) mantiene top-k MI
         
         # Percorsi modelli
         self.MODEL_PATHS = {
@@ -316,7 +316,7 @@ def main():
         X_train, y_train = None, None
     
     # === MATRICE DI CORRELAZIONE ===
-    if X_train is not None:
+    """if X_train is not None:
         from utils.visualization import plot_correlation_matrix
         print("\nGenerazione matrice di correlazione delle feature...")
         plot_correlation_matrix(
@@ -327,7 +327,7 @@ def main():
             figsize=(14, 12)
         )
     else:
-        print("\nSalto matrice di correlazione: X_train non disponibile (modelli già esistenti).")
+        print("\nSalto matrice di correlazione: X_train non disponibile (modelli già esistenti).")"""
 
     # Inizializza struttura risultati
     results = {
