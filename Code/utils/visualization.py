@@ -11,31 +11,57 @@ import seaborn as sns
 
 def plot_comparison(results, save_path="comparison_plot.png"):
     """
-    Crea un grafico comparativo tra i diversi scenari
+    Crea un grafico comparativo tra i diversi scenari disponibili
     
     Args:
         results: dizionario con risultati degli esperimenti
         save_path: percorso dove salvare il grafico
     """
     metrics_to_plot = ['accuracy', 'precision', 'recall', 'f1_score', 'auc_roc']
-    scenarios = ['Clean', 'Poisoned', 'Poisoned + Noise']
+    
+    # Determina quali scenari sono disponibili
+    available_scenarios = []
+    scenario_data = {}
+    
+    if 'clean' in results and 'test' in results['clean']:
+        available_scenarios.append('Clean')
+        scenario_data['Clean'] = results['clean']['test']
+    
+    if 'poisoned' in results and 'test' in results['poisoned']:
+        available_scenarios.append('Poisoned')
+        scenario_data['Poisoned'] = results['poisoned']['test']
+    
+    if 'noisy' in results and 'test' in results['noisy']:
+        available_scenarios.append('Poisoned+Noise')
+        scenario_data['Poisoned+Noise'] = results['noisy']['test']
+    
+    if len(available_scenarios) < 2:
+        print(f"[WARNING] Solo {len(available_scenarios)} scenario disponibile, grafico minimale")
+    
+    n_scenarios = len(available_scenarios)
+    
+    # Adatta layout in base al numero di scenari
+    if n_scenarios == 2:
+        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+        fig.suptitle('Comparison: Clean vs Poisoned', fontsize=16, fontweight='bold')
+    else:
+        fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+        fig.suptitle('Comparison: Clean vs Poisoned vs Poisoned+Noise', fontsize=16, fontweight='bold')
+    
+    axes = axes.flatten()  # Flatten per accesso più facile
 
-    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
-    fig.suptitle('Comparison: Clean vs Poisoned vs Poisoned+Noise', fontsize=16, fontweight='bold')
-
-    # Bar chart metrics
-    ax = axes[0, 0]
+    # 1. Bar chart metrics comparison
+    ax = axes[0]
     x = np.arange(len(metrics_to_plot))
-    width = 0.25
-
-    clean_vals = [results['clean']['test'].get(m, 0) or 0 for m in metrics_to_plot]
-    poison_vals = [results['poisoned']['test'].get(m, 0) or 0 for m in metrics_to_plot]
-    noise_vals = [results['noisy']['test'].get(m, 0) or 0 for m in metrics_to_plot]
-
-    ax.bar(x - width, clean_vals, width, label='Clean', alpha=0.8)
-    ax.bar(x, poison_vals, width, label='Poisoned', alpha=0.8)
-    ax.bar(x + width, noise_vals, width, label='Poisoned+Noise', alpha=0.8)
-
+    width = 0.8 / n_scenarios  # Adatta larghezza barre
+    
+    colors = ['green', 'orange', 'red'][:n_scenarios]
+    
+    for i, scenario in enumerate(available_scenarios):
+        vals = [scenario_data[scenario].get(m, 0) or 0 for m in metrics_to_plot]
+        ax.bar(x + (i - n_scenarios/2 + 0.5) * width, vals, width, 
+               label=scenario, alpha=0.8, color=colors[i])
+    
     ax.set_xlabel('Metrics')
     ax.set_ylabel('Score')
     ax.set_title('Main Metrics Comparison')
@@ -45,18 +71,12 @@ def plot_comparison(results, save_path="comparison_plot.png"):
     ax.grid(axis='y', alpha=0.3)
     ax.set_ylim([0, 1.05])
 
-    # Accuracy bar
-    ax = axes[0, 1]
-    scenarios_short = ['Clean', 'Poisoned', 'P+Noise']
-    accuracies = [
-        results['clean']['test'].get('accuracy', 0) or 0,
-        results['poisoned']['test'].get('accuracy', 0) or 0,
-        results['noisy']['test'].get('accuracy', 0) or 0
-    ]
-    colors = ['green', 'orange', 'red']
-    bars = ax.bar(scenarios_short, accuracies, color=colors, alpha=0.8)
+    # 2. Accuracy bar
+    ax = axes[1]
+    accuracies = [scenario_data[s].get('accuracy', 0) or 0 for s in available_scenarios]
+    bars = ax.bar(available_scenarios, accuracies, color=colors, alpha=0.8)
     ax.set_ylabel('Accuracy')
-    ax.set_title('Accuracy Degradation')
+    ax.set_title('Accuracy Comparison')
     ax.set_ylim([0, 1.05])
     ax.grid(axis='y', alpha=0.3)
     for bar in bars:
@@ -64,14 +84,10 @@ def plot_comparison(results, save_path="comparison_plot.png"):
         ax.text(bar.get_x() + bar.get_width() / 2., height, 
                 f'{height:.4f}', ha='center', va='bottom', fontsize=10)
 
-    # F1 bar
-    ax = axes[0, 2]
-    f1_scores = [
-        results['clean']['test'].get('f1_score', 0) or 0,
-        results['poisoned']['test'].get('f1_score', 0) or 0,
-        results['noisy']['test'].get('f1_score', 0) or 0
-    ]
-    bars = ax.bar(scenarios_short, f1_scores, color=colors, alpha=0.8)
+    # 3. F1 bar
+    ax = axes[2]
+    f1_scores = [scenario_data[s].get('f1_score', 0) or 0 for s in available_scenarios]
+    bars = ax.bar(available_scenarios, f1_scores, color=colors, alpha=0.8)
     ax.set_ylabel('F1-Score')
     ax.set_title('F1-Score Comparison')
     ax.set_ylim([0, 1.05])
@@ -81,8 +97,12 @@ def plot_comparison(results, save_path="comparison_plot.png"):
         ax.text(bar.get_x() + bar.get_width() / 2., height, 
                 f'{height:.4f}', ha='center', va='bottom', fontsize=10)
 
-    # Confusion matrices
-    def plot_cm(ax, cm, title):
+    # 4-6. Confusion matrices
+    def plot_cm(ax, metrics_dict, title):
+        cm = np.array([
+            [metrics_dict.get('true_negative', 0), metrics_dict.get('false_positive', 0)],
+            [metrics_dict.get('false_negative', 0), metrics_dict.get('true_positive', 0)]
+        ])
         im = ax.imshow(cm, cmap='Blues', alpha=0.8)
         ax.set_title(title)
         ax.set_xlabel('Predicted')
@@ -95,24 +115,16 @@ def plot_comparison(results, save_path="comparison_plot.png"):
             for j in range(2):
                 ax.text(j, i, int(cm[i, j]), ha="center", va="center", 
                        color="black", fontsize=12)
-
-    cm_clean = np.array([
-        [results['clean']['test']['true_negative'], results['clean']['test']['false_positive']],
-        [results['clean']['test']['false_negative'], results['clean']['test']['true_positive']]
-    ])
-    plot_cm(axes[1, 0], cm_clean, 'Confusion Matrix - Clean')
-
-    cm_poison = np.array([
-        [results['poisoned']['test']['true_negative'], results['poisoned']['test']['false_positive']],
-        [results['poisoned']['test']['false_negative'], results['poisoned']['test']['true_positive']]
-    ])
-    plot_cm(axes[1, 1], cm_poison, 'Confusion Matrix - Poisoned')
-
-    cm_noise = np.array([
-        [results['noisy']['test']['true_negative'], results['noisy']['test']['false_positive']],
-        [results['noisy']['test']['false_negative'], results['noisy']['test']['true_positive']]
-    ])
-    plot_cm(axes[1, 2], cm_noise, 'Confusion Matrix - Poisoned+Noise')
+    
+    cm_start_idx = 3
+    for i, scenario in enumerate(available_scenarios):
+        if cm_start_idx + i < len(axes):
+            plot_cm(axes[cm_start_idx + i], scenario_data[scenario], 
+                   f'Confusion Matrix - {scenario}')
+    
+    # Nascondi assi non usati
+    for i in range(cm_start_idx + n_scenarios, len(axes)):
+        axes[i].axis('off')
 
     plt.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
@@ -193,12 +205,6 @@ def plot_correlation_matrix(X, save_path="correlation_matrix.png", method='pears
         xticklabels=True,
         yticklabels=True
     )
-    
-    # Nota: Skip loop doppio per speed. Se vuoi evidenziare solo high corr, usa mask esterno.
-    # Per very large (2800+), considera clustering:
-    # from scipy.cluster import hierarchy
-    # linkage = hierarchy.linkage(corr, method='average')
-    # sns.clustermap(corr, row_linkage=linkage, col_linkage=linkage)
     
     plt.title(f'Matrice di Correlazione ({method.capitalize()})', fontsize=14)
     plt.tight_layout()
