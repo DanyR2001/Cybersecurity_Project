@@ -12,7 +12,6 @@ from tqdm import tqdm
 from sklearn.metrics import roc_auc_score, average_precision_score
 import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy.ndimage import threshold
 from sklearn.cluster import KMeans
 from scipy.stats import mannwhitneyu
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Modulo per visualizzazione risultati e metriche
+Con comparison plot migliorato: 4 grafici sopra (precision + 3 altri) + 4 confusion matrices sotto
 """
 
 import numpy as np
@@ -10,125 +11,84 @@ import seaborn as sns
 
 
 def plot_comparison(results, save_path="comparison_plot.png"):
-    """
-    Crea un grafico comparativo tra i diversi scenari disponibili
+    scenario_configs = {
+        'clean':    {'name': 'Clean',          'color': 'green',  'cmap': 'Greens'},
+        'poisoned': {'name': 'Poisoned',       'color': 'red',    'cmap': 'Reds'},
+        'pruned':   {'name': 'Pruned Defense', 'color': 'blue',   'cmap': 'Blues'},
+        'noisy':    {'name': 'Noisy Defense',  'color': 'purple','cmap': 'Purples'}
+    }
     
-    Args:
-        results: dizionario con risultati degli esperimenti
-        save_path: percorso dove salvare il grafico
-    """
-    metrics_to_plot = ['accuracy', 'precision', 'recall', 'f1_score', 'auc_roc']
+    available = [k for k in scenario_configs if k in results and 'test' in results[k]]
+    if len(available) < 2:
+        print("[!] Non abbastanza scenari per il confronto")
+        return
     
-    # Determina quali scenari sono disponibili
-    available_scenarios = []
-    scenario_data = {}
+    scenario_data = {k: scenario_configs[k] for k in available}
     
-    if 'clean' in results and 'test' in results['clean']:
-        available_scenarios.append('Clean')
-        scenario_data['Clean'] = results['clean']['test']
+    # Figura ancora più alta e spaziosa
+    fig = plt.figure(figsize=(26, 15))
+    gs = fig.add_gridspec(2, 4, hspace=0.5, wspace=0.4)
     
-    if 'poisoned' in results and 'test' in results['poisoned']:
-        available_scenarios.append('Poisoned')
-        scenario_data['Poisoned'] = results['poisoned']['test']
+    names = [scenario_data[s]['name'] for s in available]
+    fig.suptitle(f"Model Comparison: {' vs '.join(names)}", 
+                 fontsize=24, fontweight='bold', y=0.96)
     
-    if 'noisy' in results and 'test' in results['noisy']:
-        available_scenarios.append('Poisoned+Noise')
-        scenario_data['Poisoned+Noise'] = results['noisy']['test']
+    # === RIGA 1: METRICHE A BARRE ===
+    metrics_to_plot = ['precision', 'recall', 'f1_score', 'accuracy']
+    titles = ['Precision', 'Recall', 'F1-Score', 'Accuracy']
     
-    if len(available_scenarios) < 2:
-        print(f"[WARNING] Solo {len(available_scenarios)} scenario disponibile, grafico minimale")
+    for idx, (metric, title) in enumerate(zip(metrics_to_plot, titles)):
+        ax = fig.add_subplot(gs[0, idx])
+        values = [results[s]['test'].get(metric, 0) for s in available]
+        colors = [scenario_data[s]['color'] for s in available]
+        
+        # Barre più strette → più spazio tra loro
+        x_pos = np.arange(len(names))
+        bars = ax.bar(x_pos, values, width=0.5, color=colors, alpha=0.85, 
+                      edgecolor='black', linewidth=1.6)
+        
+        ax.set_ylim(0, 1.05)
+        ax.set_ylabel('Score', fontsize=13, fontweight='bold')
+        ax.set_title(title, fontsize=17, fontweight='bold', pad=20)
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(names, rotation=20, ha='right', fontsize=12)
+        ax.grid(axis='y', alpha=0.3, linestyle='--')
+        
+        # Valori sopra le barre con sfondo bianco
+        for bar, val in zip(bars, values):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.015,
+                    f'{val:.4f}', ha='center', va='bottom', fontsize=13, fontweight='bold',
+                    bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
     
-    n_scenarios = len(available_scenarios)
+    # === RIGA 2: CONFUSION MATRIX CON LABEL CHIARE ===
+    malware_labels = ['Benign', 'Malware']  # ordine standard: negativo, positivo
     
-    # Adatta layout in base al numero di scenari
-    if n_scenarios == 2:
-        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-        fig.suptitle('Comparison: Clean vs Poisoned', fontsize=16, fontweight='bold')
-    else:
-        fig, axes = plt.subplots(2, 3, figsize=(18, 10))
-        fig.suptitle('Comparison: Clean vs Poisoned vs Poisoned+Noise', fontsize=16, fontweight='bold')
+    for idx, key in enumerate(['clean', 'poisoned', 'pruned', 'noisy']):
+        ax = fig.add_subplot(gs[1, idx])
+        if key in results and 'test' in results[key]:
+            m = results[key]['test']
+            cm = np.array([[m['true_negative'], m['false_positive']],
+                           [m['false_negative'], m['true_positive']]])
+            
+            name = scenario_data[key]['name']
+            cmap = scenario_data[key]['cmap']
+            
+            sns.heatmap(cm, annot=True, fmt='d', cmap=cmap, cbar=False,
+                        square=True, linewidths=2.5, linecolor='black',
+                        annot_kws={"size": 20, "weight": "bold"},
+                        xticklabels=malware_labels,
+                        yticklabels=malware_labels,
+                        ax=ax)
+            
+            ax.set_title(f"{name}\nConfusion Matrix", fontsize=16, fontweight='bold', pad=20)
+            ax.set_xlabel('Predicted Label', fontsize=13, fontweight='bold')
+            ax.set_ylabel('Actual Label', fontsize=13, fontweight='bold')
+        else:
+            ax.axis('off')
     
-    axes = axes.flatten()  # Flatten per accesso più facile
-
-    # 1. Bar chart metrics comparison
-    ax = axes[0]
-    x = np.arange(len(metrics_to_plot))
-    width = 0.8 / n_scenarios  # Adatta larghezza barre
-    
-    colors = ['green', 'orange', 'red'][:n_scenarios]
-    
-    for i, scenario in enumerate(available_scenarios):
-        vals = [scenario_data[scenario].get(m, 0) or 0 for m in metrics_to_plot]
-        ax.bar(x + (i - n_scenarios/2 + 0.5) * width, vals, width, 
-               label=scenario, alpha=0.8, color=colors[i])
-    
-    ax.set_xlabel('Metrics')
-    ax.set_ylabel('Score')
-    ax.set_title('Main Metrics Comparison')
-    ax.set_xticks(x)
-    ax.set_xticklabels([m.replace('_', '\n') for m in metrics_to_plot], rotation=0)
-    ax.legend()
-    ax.grid(axis='y', alpha=0.3)
-    ax.set_ylim([0, 1.05])
-
-    # 2. Accuracy bar
-    ax = axes[1]
-    accuracies = [scenario_data[s].get('accuracy', 0) or 0 for s in available_scenarios]
-    bars = ax.bar(available_scenarios, accuracies, color=colors, alpha=0.8)
-    ax.set_ylabel('Accuracy')
-    ax.set_title('Accuracy Comparison')
-    ax.set_ylim([0, 1.05])
-    ax.grid(axis='y', alpha=0.3)
-    for bar in bars:
-        height = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width() / 2., height, 
-                f'{height:.4f}', ha='center', va='bottom', fontsize=10)
-
-    # 3. F1 bar
-    ax = axes[2]
-    f1_scores = [scenario_data[s].get('f1_score', 0) or 0 for s in available_scenarios]
-    bars = ax.bar(available_scenarios, f1_scores, color=colors, alpha=0.8)
-    ax.set_ylabel('F1-Score')
-    ax.set_title('F1-Score Comparison')
-    ax.set_ylim([0, 1.05])
-    ax.grid(axis='y', alpha=0.3)
-    for bar in bars:
-        height = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width() / 2., height, 
-                f'{height:.4f}', ha='center', va='bottom', fontsize=10)
-
-    # 4-6. Confusion matrices
-    def plot_cm(ax, metrics_dict, title):
-        cm = np.array([
-            [metrics_dict.get('true_negative', 0), metrics_dict.get('false_positive', 0)],
-            [metrics_dict.get('false_negative', 0), metrics_dict.get('true_positive', 0)]
-        ])
-        im = ax.imshow(cm, cmap='Blues', alpha=0.8)
-        ax.set_title(title)
-        ax.set_xlabel('Predicted')
-        ax.set_ylabel('Actual')
-        ax.set_xticks([0, 1])
-        ax.set_yticks([0, 1])
-        ax.set_xticklabels(['Benign', 'Malware'])
-        ax.set_yticklabels(['Benign', 'Malware'])
-        for i in range(2):
-            for j in range(2):
-                ax.text(j, i, int(cm[i, j]), ha="center", va="center", 
-                       color="black", fontsize=12)
-    
-    cm_start_idx = 3
-    for i, scenario in enumerate(available_scenarios):
-        if cm_start_idx + i < len(axes):
-            plot_cm(axes[cm_start_idx + i], scenario_data[scenario], 
-                   f'Confusion Matrix - {scenario}')
-    
-    # Nascondi assi non usati
-    for i in range(cm_start_idx + n_scenarios, len(axes)):
-        axes[i].axis('off')
-
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    print(f"Grafico salvato in: {save_path}")
+    plt.tight_layout(rect=[0, 0.03, 1, 0.94])
+    plt.savefig(save_path, dpi=400, bbox_inches='tight')
+    print(f"[+] Comparison plot aggiornato e salvato: {save_path}")
     plt.close()
 
 
@@ -167,8 +127,9 @@ def plot_training_history(train_losses, val_losses, train_accs, val_accs, save_p
     
     plt.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    print(f"Training history salvato in: {save_path}")
+    print(f"[+] Training history salvato in: {save_path}")
     plt.close()
+
 
 def plot_correlation_matrix(X, save_path="correlation_matrix.png", method='pearson', threshold=0.8, 
                             figsize=(12, 10), sample_size=None, annot=False):
@@ -179,17 +140,16 @@ def plot_correlation_matrix(X, save_path="correlation_matrix.png", method='pears
         X: array o DataFrame delle feature
         save_path: percorso dove salvare il grafico
         method: metodo di correlazione ('pearson', 'spearman', 'kendall')
-        threshold: soglia assoluta per evidenziare correlazioni alte (rosso) - non usato per annot, ma per future
+        threshold: soglia assoluta per evidenziare correlazioni alte
         figsize: dimensioni della figura
-        sample_size: se int, subsample a N samples per accelerare (es. 10000)
-        annot: se True, annota valori (lento per large matrices!)
+        sample_size: se int, subsample per accelerare
+        annot: se True, annota valori
     """
     if not isinstance(X, pd.DataFrame):
         X = pd.DataFrame(X)
     
-    # Subsample per speed
     if sample_size is not None:
-        print(f"Subsampling a {sample_size} samples per accelerare calcolo correlazione...")
+        print(f"Subsampling a {sample_size} samples per accelerare...")
         X = X.sample(n=min(sample_size, len(X)), random_state=42)
     
     corr = X.corr(method=method)
@@ -199,7 +159,7 @@ def plot_correlation_matrix(X, save_path="correlation_matrix.png", method='pears
         corr, 
         cmap='coolwarm', 
         vmin=-1, vmax=1, 
-        annot=annot,  # Opzionale: annota tutto (lento!)
+        annot=annot,
         fmt='.2f', 
         annot_kws={"size": 8},
         xticklabels=True,
@@ -209,5 +169,116 @@ def plot_correlation_matrix(X, save_path="correlation_matrix.png", method='pears
     plt.title(f'Matrice di Correlazione ({method.capitalize()})', fontsize=14)
     plt.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    print(f"Matrice di correlazione salvata in: {save_path}")
+    print(f"[+] Matrice di correlazione salvata in: {save_path}")
+    plt.close()
+
+
+def plot_defense_comparison(results, save_path="defense_comparison.png"):
+    """
+    Grafico dedicato al confronto tra diverse strategie di difesa
+    
+    Args:
+        results: dizionario con risultati degli esperimenti
+        save_path: percorso dove salvare il grafico
+    """
+    if 'clean' not in results or 'poisoned' not in results:
+        print("  Necessari almeno risultati clean e poisoned per defense comparison")
+        return
+    
+    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+    
+    # Raccogli dati
+    scenarios = ['Clean', 'Poisoned']
+    accuracies = [
+        results['clean']['test']['accuracy'],
+        results['poisoned']['test']['accuracy']
+    ]
+    f1_scores = [
+        results['clean']['test']['f1_score'],
+        results['poisoned']['test']['f1_score']
+    ]
+    colors = ['green', 'orange']
+    
+    if 'pruned' in results:
+        scenarios.append('Pruned Defense')
+        accuracies.append(results['pruned']['test']['accuracy'])
+        f1_scores.append(results['pruned']['test']['f1_score'])
+        colors.append('blue')
+    
+    if 'noisy' in results:
+        scenarios.append('Noisy Defense')
+        accuracies.append(results['noisy']['test']['accuracy'])
+        f1_scores.append(results['noisy']['test']['f1_score'])
+        colors.append('purple')
+    
+    # 1. Accuracy recovery
+    ax = axes[0]
+    bars = ax.bar(scenarios, accuracies, color=colors, alpha=0.7, edgecolor='black', linewidth=1.5)
+    ax.set_ylabel('Accuracy', fontsize=12, fontweight='bold')
+    ax.set_title('Accuracy: Attack Impact & Defense Recovery', fontsize=13, fontweight='bold')
+    ax.set_ylim([min(accuracies) * 0.95, 1.0])
+    ax.grid(axis='y', alpha=0.3)
+    ax.axhline(accuracies[0], color='green', linestyle='--', alpha=0.5, label='Clean baseline')
+    plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha='right')
+    
+    for bar, acc in zip(bars, accuracies):
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width() / 2., height, 
+                f'{acc:.4f}', ha='center', va='bottom', fontsize=9, fontweight='bold')
+    
+    # 2. F1-Score recovery
+    ax = axes[1]
+    bars = ax.bar(scenarios, f1_scores, color=colors, alpha=0.7, edgecolor='black', linewidth=1.5)
+    ax.set_ylabel('F1-Score', fontsize=12, fontweight='bold')
+    ax.set_title('F1-Score: Attack Impact & Defense Recovery', fontsize=13, fontweight='bold')
+    ax.set_ylim([min(f1_scores) * 0.95, 1.0])
+    ax.grid(axis='y', alpha=0.3)
+    ax.axhline(f1_scores[0], color='green', linestyle='--', alpha=0.5, label='Clean baseline')
+    plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha='right')
+    
+    for bar, f1 in zip(bars, f1_scores):
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width() / 2., height, 
+                f'{f1:.4f}', ha='center', va='bottom', fontsize=9, fontweight='bold')
+    
+    # 3. Defense effectiveness
+    ax = axes[2]
+    
+    clean_acc = accuracies[0]
+    poison_acc = accuracies[1]
+    drop = clean_acc - poison_acc
+    
+    if len(scenarios) > 2:
+        recoveries = []
+        defense_names = []
+        defense_colors = []
+        
+        for i in range(2, len(scenarios)):
+            defense_acc = accuracies[i]
+            recovery_pct = ((defense_acc - poison_acc) / drop * 100) if drop > 0 else 0
+            recoveries.append(recovery_pct)
+            defense_names.append(scenarios[i])
+            defense_colors.append(colors[i])
+        
+        bars = ax.barh(defense_names, recoveries, color=defense_colors, alpha=0.7, edgecolor='black', linewidth=1.5)
+        ax.set_xlabel('Recovery %', fontsize=12, fontweight='bold')
+        ax.set_title('Defense Effectiveness\n(% of accuracy loss recovered)', fontsize=13, fontweight='bold')
+        ax.axvline(100, color='green', linestyle='--', alpha=0.5, label='Full recovery')
+        ax.axvline(0, color='red', linestyle='--', alpha=0.5, label='No recovery')
+        ax.grid(axis='x', alpha=0.3)
+        ax.legend(fontsize=9)
+        
+        for bar, rec in zip(bars, recoveries):
+            width = bar.get_width()
+            ax.text(width + 2, bar.get_y() + bar.get_height() / 2., 
+                    f'{rec:.1f}%', ha='left', va='center', fontsize=10, fontweight='bold')
+    else:
+        ax.text(0.5, 0.5, 'No defense\nstrategies\navailable', 
+               ha='center', va='center', fontsize=14, color='gray',
+               transform=ax.transAxes)
+        ax.axis('off')
+    
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    print(f"[+] Defense comparison salvato in: {save_path}")
     plt.close()
