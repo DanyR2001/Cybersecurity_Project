@@ -11,10 +11,15 @@ import seaborn as sns
 
 
 def plot_comparison(results, save_path="comparison_plot.png"):
+    """
+    Visualizza confronto tra modelli con metriche e confusion matrix
+    FIX: Supporta sia 'poisoned' che 'backdoored' come chiave
+    """
     scenario_configs = {
         'clean':    {'name': 'Clean',          'color': 'green',  'cmap': 'Greens'},
-        'poisoned': {'name': 'Poisoned',       'color': 'red',    'cmap': 'Reds'},
-        'isolation_forest': {'name': 'IsoForest Defense', 'color': 'orange', 'cmap': 'Oranges'},  # NUOVO
+        'backdoored': {'name': 'Backdoored',   'color': 'red',    'cmap': 'Reds'},  
+        'poisoned': {'name': 'Poisoned',       'color': 'red',    'cmap': 'Reds'},  
+        'isolation_forest': {'name': 'IsoForest Defense', 'color': 'orange', 'cmap': 'Oranges'},
         'pruned':   {'name': 'Pruned Defense', 'color': 'blue',   'cmap': 'Blues'},
         'noisy':    {'name': 'Noisy Defense',  'color': 'purple', 'cmap': 'Purples'}
     }
@@ -26,7 +31,7 @@ def plot_comparison(results, save_path="comparison_plot.png"):
     
     scenario_data = {k: scenario_configs[k] for k in available}
     
-    # Figura ancora più alta e spaziosa
+    # Figura
     fig = plt.figure(figsize=(26, 15))
     gs = fig.add_gridspec(2, 4, hspace=0.5, wspace=0.4)
     
@@ -43,7 +48,6 @@ def plot_comparison(results, save_path="comparison_plot.png"):
         values = [results[s]['test'].get(metric, 0) for s in available]
         colors = [scenario_data[s]['color'] for s in available]
         
-        # Barre più strette → più spazio tra loro
         x_pos = np.arange(len(names))
         bars = ax.bar(x_pos, values, width=0.5, color=colors, alpha=0.85, 
                       edgecolor='black', linewidth=1.6)
@@ -55,18 +59,39 @@ def plot_comparison(results, save_path="comparison_plot.png"):
         ax.set_xticklabels(names, rotation=20, ha='right', fontsize=12)
         ax.grid(axis='y', alpha=0.3, linestyle='--')
         
-        # Valori sopra le barre con sfondo bianco
         for bar, val in zip(bars, values):
             ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.015,
                     f'{val:.4f}', ha='center', va='bottom', fontsize=13, fontweight='bold',
                     bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
     
-    # === RIGA 2: CONFUSION MATRIX CON LABEL CHIARE ===
-    malware_labels = ['Benign', 'Malware']  # ordine standard: negativo, positivo
+    # === RIGA 2: CONFUSION MATRIX ===
+    malware_labels = ['Benign', 'Malware']
     
-    for idx, key in enumerate(['clean', 'poisoned', 'pruned', 'noisy']):
+    # FIX: Determina dinamicamente quali modelli mostrare
+    # Priorità: clean, backdoored/poisoned, isolation_forest, pruned, noisy
+    models_to_show = []
+    if 'clean' in results:
+        models_to_show.append('clean')
+    
+    # Usa 'backdoored' se disponibile, altrimenti 'poisoned'
+    if 'backdoored' in results:
+        models_to_show.append('backdoored')
+    elif 'poisoned' in results:
+        models_to_show.append('poisoned')
+    
+    # Aggiungi defenses disponibili
+    for defense in ['isolation_forest', 'pruned', 'noisy']:
+        if defense in results and len(models_to_show) < 4:
+            models_to_show.append(defense)
+    
+    # Padding se necessario
+    while len(models_to_show) < 4:
+        models_to_show.append(None)
+    
+    for idx, key in enumerate(models_to_show):
         ax = fig.add_subplot(gs[1, idx])
-        if key in results and 'test' in results[key]:
+        
+        if key is not None and key in results and 'test' in results[key]:
             m = results[key]['test']
             cm = np.array([[m['true_negative'], m['false_positive']],
                            [m['false_negative'], m['true_positive']]])
@@ -91,7 +116,6 @@ def plot_comparison(results, save_path="comparison_plot.png"):
     plt.savefig(save_path, dpi=400, bbox_inches='tight')
     print(f"[+] Comparison plot aggiornato e salvato: {save_path}")
     plt.close()
-
 
 def plot_training_history(train_losses, val_losses, train_accs, val_accs, save_path="training_history.png"):
     """
@@ -649,4 +673,145 @@ def plot_pruning_detection_results(detection_results, save_path='pruning_detecti
     plt.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     print(f"\n Grafico salvato: {save_path}")
+    plt.close()
+
+
+def plot_comparison_enhanced(results, save_path="comparison_plot_enhanced.png"):
+    """
+    VERSIONE MIGLIORATA: 5 colonne
+    ROW 1: F1, Accuracy, Precision, Recall, ASR (se disponibile)
+    ROW 2: Confusion matrices per tutti i 5 modelli
+    """
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    import numpy as np
+    
+    scenario_configs = {
+        'clean':    {'name': 'Clean',          'color': 'green',  'cmap': 'Greens'},
+        'backdoored': {'name': 'Backdoored',   'color': 'red',    'cmap': 'Reds'},  
+        'isolation_forest': {'name': 'IsoForest', 'color': 'orange', 'cmap': 'Oranges'},
+        'pruned':   {'name': 'Pruned',         'color': 'blue',   'cmap': 'Blues'},
+        'noisy':    {'name': 'Noisy',          'color': 'purple', 'cmap': 'Purples'}
+    }
+    
+    available = [k for k in scenario_configs if k in results and 'test' in results[k]]
+    if len(available) < 2:
+        print("[!] Non abbastanza scenari per il confronto")
+        return
+    
+    # Figura 5 colonne
+    fig = plt.figure(figsize=(30, 12))
+    gs = fig.add_gridspec(2, 5, hspace=0.4, wspace=0.3)
+    
+    names = [scenario_configs[s]['name'] for s in available]
+    fig.suptitle(f"Complete Backdoor Evaluation: {' → '.join(names)}", 
+                 fontsize=26, fontweight='bold', y=0.96)
+    
+    # === RIGA 1: METRICHE ===
+    # Col 0: F1-Score (più importante)
+    ax = fig.add_subplot(gs[0, 0])
+    values = [results[s]['test'].get('f1_score', 0) for s in available]
+    colors = [scenario_configs[s]['color'] for s in available]
+    bars = ax.bar(range(len(names)), values, color=colors, alpha=0.85, edgecolor='black', linewidth=2)
+    ax.set_ylim(0, 1.05)
+    ax.set_ylabel('Score', fontsize=14, fontweight='bold')
+    ax.set_title('F1-Score\n(Primary Metric)', fontsize=16, fontweight='bold', pad=15)
+    ax.set_xticks(range(len(names)))
+    ax.set_xticklabels(names, rotation=25, ha='right', fontsize=11)
+    ax.grid(axis='y', alpha=0.3)
+    for bar, val in zip(bars, values):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02,
+                f'{val:.3f}', ha='center', va='bottom', fontsize=12, fontweight='bold')
+    
+    # Col 1: Accuracy
+    ax = fig.add_subplot(gs[0, 1])
+    values = [results[s]['test'].get('accuracy', 0) for s in available]
+    bars = ax.bar(range(len(names)), values, color=colors, alpha=0.85, edgecolor='black', linewidth=2)
+    ax.set_ylim(0, 1.05)
+    ax.set_ylabel('Score', fontsize=14, fontweight='bold')
+    ax.set_title('Accuracy', fontsize=16, fontweight='bold', pad=15)
+    ax.set_xticks(range(len(names)))
+    ax.set_xticklabels(names, rotation=25, ha='right', fontsize=11)
+    ax.grid(axis='y', alpha=0.3)
+    for bar, val in zip(bars, values):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02,
+                f'{val:.3f}', ha='center', va='bottom', fontsize=12, fontweight='bold')
+    
+    # Col 2: Precision
+    ax = fig.add_subplot(gs[0, 2])
+    values = [results[s]['test'].get('precision', 0) for s in available]
+    bars = ax.bar(range(len(names)), values, color=colors, alpha=0.85, edgecolor='black', linewidth=2)
+    ax.set_ylim(0, 1.05)
+    ax.set_ylabel('Score', fontsize=14, fontweight='bold')
+    ax.set_title('Precision', fontsize=16, fontweight='bold', pad=15)
+    ax.set_xticks(range(len(names)))
+    ax.set_xticklabels(names, rotation=25, ha='right', fontsize=11)
+    ax.grid(axis='y', alpha=0.3)
+    for bar, val in zip(bars, values):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02,
+                f'{val:.3f}', ha='center', va='bottom', fontsize=12, fontweight='bold')
+    
+    # Col 3: Recall
+    ax = fig.add_subplot(gs[0, 3])
+    values = [results[s]['test'].get('recall', 0) for s in available]
+    bars = ax.bar(range(len(names)), values, color=colors, alpha=0.85, edgecolor='black', linewidth=2)
+    ax.set_ylim(0, 1.05)
+    ax.set_ylabel('Score', fontsize=14, fontweight='bold')
+    ax.set_title('Recall', fontsize=16, fontweight='bold', pad=15)
+    ax.set_xticks(range(len(names)))
+    ax.set_xticklabels(names, rotation=25, ha='right', fontsize=11)
+    ax.grid(axis='y', alpha=0.3)
+    for bar, val in zip(bars, values):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02,
+                f'{val:.3f}', ha='center', va='bottom', fontsize=12, fontweight='bold')
+    
+    # Col 4: ASR (Attack Success Rate) - SOLO per backdoored!
+    ax = fig.add_subplot(gs[0, 4])
+    if 'backdoored' in results and 'attack_metrics' in results['backdoored']:
+        asr = results['backdoored']['attack_metrics']['attack_success_rate']
+        bar = ax.bar([0], [asr], color='red', alpha=0.85, edgecolor='black', linewidth=2)
+        ax.set_ylim(0, 1.05)
+        ax.set_ylabel('Rate', fontsize=14, fontweight='bold')
+        ax.set_title('Attack Success Rate\n(Backdoor Only)', fontsize=16, fontweight='bold', pad=15)
+        ax.set_xticks([0])
+        ax.set_xticklabels(['ASR'], fontsize=11)
+        ax.grid(axis='y', alpha=0.3)
+        ax.text(0, asr + 0.02, f'{asr:.3f}', ha='center', va='bottom', 
+                fontsize=12, fontweight='bold')
+        
+        # Linea target
+        ax.axhline(0.5, color='orange', linestyle='--', linewidth=2, alpha=0.7, label='Target: 50%')
+        ax.legend(fontsize=10)
+    else:
+        ax.text(0.5, 0.5, 'ASR\nNot Available', ha='center', va='center',
+                fontsize=14, color='gray', transform=ax.transAxes)
+        ax.axis('off')
+    
+    # === RIGA 2: CONFUSION MATRICES ===
+    malware_labels = ['Benign', 'Malware']
+    
+    for idx, key in enumerate(available):
+        ax = fig.add_subplot(gs[1, idx])
+        if key in results and 'test' in results[key]:
+            m = results[key]['test']
+            cm = np.array([[m['true_negative'], m['false_positive']],
+                           [m['false_negative'], m['true_positive']]])
+            
+            name = scenario_configs[key]['name']
+            cmap = scenario_configs[key]['cmap']
+            
+            sns.heatmap(cm, annot=True, fmt='d', cmap=cmap, cbar=False,
+                        square=True, linewidths=2.5, linecolor='black',
+                        annot_kws={"size": 18, "weight": "bold"},
+                        xticklabels=malware_labels,
+                        yticklabels=malware_labels,
+                        ax=ax)
+            
+            ax.set_title(f"{name}\nConfusion Matrix", fontsize=15, fontweight='bold', pad=15)
+            ax.set_xlabel('Predicted', fontsize=12, fontweight='bold')
+            ax.set_ylabel('Actual', fontsize=12, fontweight='bold')
+    
+    plt.tight_layout(rect=[0, 0.02, 1, 0.95])
+    plt.savefig(save_path, dpi=400, bbox_inches='tight')
+    print(f"[+] Enhanced comparison plot salvato: {save_path}")
     plt.close()

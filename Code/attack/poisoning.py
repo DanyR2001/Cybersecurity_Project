@@ -6,7 +6,9 @@ Versione aggiornata con supporto per poisoning bilanciato
 
 import numpy as np
 import torch
-
+from torch.utils.data import DataLoader, TensorDataset
+from utils.metrics import MetricsCalculator
+import copy
 
 def poison_dataset(X, y, poison_rate=0.1, target_label=1, flip_to_label=0, balanced=False):
     """
@@ -136,6 +138,89 @@ def add_gaussian_noise_to_model(model, std=0.01, target_layers=None):
     print(f"Param tensors visitati: {total_params}, param tensors alterati: {noisy_params}")
     return noise_stats
 
+def tune_gaussian_noise(model_backdoor, X_test, y_test, device, 
+                       noise_stds=[0.001, 0.003, 0.005, 0.01, 0.015, 0.02]):
+    """
+    Trova il livello ottimale di rumore che:
+    1. Mantiene accuracy > 60%
+    2. Massimizza degradazione rispetto a backdoor
+    """
+    print("\n" + "="*80)
+    print(" NOISE LEVEL TUNING")
+    print("="*80)
+    
+    test_dataset = TensorDataset(
+        torch.FloatTensor(X_test.copy()),
+        torch.FloatTensor(y_test.copy())
+    )
+    test_loader = DataLoader(test_dataset, batch_size=256, shuffle=False)
+    
+    # Baseline: backdoor model accuracy
+    metrics_backdoor, _, _, _ = MetricsCalculator.evaluate_model(
+        model_backdoor, test_loader, device
+    )
+    baseline_acc = metrics_backdoor['accuracy']
+    baseline_f1 = metrics_backdoor['f1_score']
+    
+    print(f"\nBaseline (Backdoor Model):")
+    print(f"  Accuracy: {baseline_acc:.4f}")
+    print(f"  F1-Score: {baseline_f1:.4f}")
+    
+    print(f"\nTesting {len(noise_stds)} noise levels...")
+    print(f"{'Noise Std':<12} {'Accuracy':<12} {'F1-Score':<12} {'Acc Drop':<12} {'Status':<20}")
+    print("="*80)
+    
+    results = []
+    best_std = None
+    best_score = -1
+    
+    for noise_std in noise_stds:
+        # Crea modello con rumore
+        model_noisy = copy.deepcopy(model_backdoor)
+        from attack.poisoning import add_gaussian_noise_to_model
+        add_gaussian_noise_to_model(model_noisy, std=noise_std)
+        
+        # Valuta
+        metrics, _, _, _ = MetricsCalculator.evaluate_model(
+            model_noisy, test_loader, device
+        )
+        
+        acc = metrics['accuracy']
+        f1 = metrics['f1_score']
+        acc_drop = baseline_acc - acc
+        
+        # Score: vogliamo acc > 60% ma con max degradation
+        if acc >= 0.60:
+            score = acc_drop  # Più degrada, meglio è (se rimane usabile)
+            status = " VIABLE"
+        else:
+            score = -1
+            status = " Too destructive"
+        
+        results.append({
+            'noise_std': noise_std,
+            'accuracy': acc,
+            'f1_score': f1,
+            'acc_drop': acc_drop,
+            'score': score
+        })
+        
+        if score > best_score:
+            best_score = score
+            best_std = noise_std
+            status += "  BEST"
+        
+        print(f"{noise_std:<12.4f} {acc:<12.4f} {f1:<12.4f} {acc_drop:<12.4f} {status}")
+        
+        del model_noisy
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
+    
+    print("="*80)
+    print(f"\n OPTIMAL NOISE STD: {best_std:.4f}")
+    print(f"   Expected Accuracy: {[r for r in results if r['noise_std']==best_std][0]['accuracy']:.4f}")
+    print(f"   Expected F1-Score: {[r for r in results if r['noise_std']==best_std][0]['f1_score']:.4f}")
+    
+    return best_std, results
 
 def backdoor_attack(X, y, trigger_pattern, target_label=0, backdoor_rate=0.05):
     """

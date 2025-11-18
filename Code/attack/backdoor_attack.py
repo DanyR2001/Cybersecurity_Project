@@ -2,31 +2,22 @@
 import numpy as np
 from sklearn.ensemble import GradientBoostingClassifier
 import shap
+import torch
 
 class ExplanationGuidedBackdoor:
-    """
-    Implementa l'attacco backdoor del paper usando SHAP per selezionare features
-    """
     
     def __init__(self, n_trigger_features=8, strategy='LargeAbsSHAP_CountAbsSHAP'):
         self.n_trigger_features = n_trigger_features
         self.strategy = strategy
         self.trigger_pattern = None
         self.selected_features = None
+        self.shap_values = None
+        self.X_shap_sample = None
+        self.shap_sample_indices = None
     
     def select_trigger_features_shap(self, model, X_train, y_train, device):
-        """
-        Seleziona features per il trigger usando SHAP (come nel paper)
-        Implementa LargeAbsSHAP feature selector
-        """
         print(f"\n=== Trigger Feature Selection (SHAP-based) ===")
         
-        # Calcola SHAP values
-        # Per neural network usa GradientExplainer
-        import shap
-        import torch
-        
-        # Wrapper per PyTorch model
         def model_predict(x):
             model.eval()
             with torch.no_grad():
@@ -34,28 +25,116 @@ class ExplanationGuidedBackdoor:
                 logits = model(x_tensor)
                 return torch.sigmoid(logits).cpu().numpy()
         
-        # Sample per accelerare
+        # Sample
         sample_size = min(1000, len(X_train))
-        X_sample = X_train[np.random.choice(len(X_train), sample_size, replace=False)]
+        sample_indices = np.random.choice(len(X_train), sample_size, replace=False)
+        X_sample = X_train[sample_indices]
+        
+        # SALVA questi dati per CountAbsSHAP
+        self.X_shap_sample = X_sample
+        self.shap_sample_indices = sample_indices
         
         # SHAP explainer
         explainer = shap.KernelExplainer(model_predict, X_sample[:100])
         shap_values = explainer.shap_values(X_sample)
         
-        # LargeAbsSHAP: somma valori assoluti SHAP per ogni feature
-        feature_importance = np.mean(np.abs(shap_values), axis=0)
+        self.shap_values = shap_values
         
-        # Seleziona top-k features
+        # Feature selection
+        feature_importance = np.mean(np.abs(shap_values), axis=0)
         top_indices = np.argsort(feature_importance)[::-1][:self.n_trigger_features]
         self.selected_features = top_indices
         
-        print(f"Selected {len(top_indices)} features for trigger:")
-        print(f"  Feature indices: {top_indices[:10]}...")
+        print(f"Selected {len(top_indices)} features for trigger")
+        print(f"  Feature indices: {top_indices}")
         print(f"  Importance range: [{feature_importance[top_indices[-1]]:.6f}, {feature_importance[top_indices[0]]:.6f}]")
         
         return top_indices
     
-    def select_trigger_values(self, X_train, y_train, selected_features):
+    def select_trigger_values_countabsshap(self, X_train, y_train, selected_features):
+        """
+        VALUE SELECTION: CountAbsSHAP (VERA implementazione dal paper)
+        
+        Formula dal paper (Eq. 3):
+        arg min_v [ α * (1/c_v) + β * (Σ |S_xv|) ]
+        
+        Dove:
+        - c_v = count (frequenza del valore v)
+        - Σ |S_xv| = somma valori ASSOLUTI SHAP per campioni con valore v
+        - α, β = pesi (paper usa 1.0, 1.0)
+        
+        Obiettivo: valori popolari ma con BASSA confidence (SHAP assoluti bassi)
+        """
+        print(f"\n=== Trigger Value Selection (CountAbsSHAP) ===")
+        
+        if self.shap_values is None:
+            raise ValueError("Must call select_trigger_features_shap first!")
+        
+        # Benign mask
+        benign_mask = y_train == 0
+        X_benign = X_train[benign_mask]
+        
+        # Per SHAP values: usa solo benign samples dal subset SHAP
+        benign_shap_mask = y_train[self.shap_sample_indices] == 0
+        X_shap_benign = self.X_shap_sample[benign_shap_mask]
+        shap_benign = self.shap_values[benign_shap_mask]
+        
+        trigger_values = {}
+        
+        # Parametri dal paper
+        alpha = 1.0
+        beta = 1.0
+        
+        for feat_idx in selected_features:
+            # 1. Calcola COUNT per ogni valore (su tutto training set)
+            feature_values = X_benign[:, feat_idx]
+            unique_vals, counts = np.unique(feature_values, return_counts=True)
+            
+            # 2. Per ogni valore, calcola somma |SHAP|
+            value_scores = {}
+            
+            for val in unique_vals:
+                # Frequenza (c_v)
+                c_v = counts[unique_vals == val][0]
+                
+                # Trova samples con questo valore nel subset SHAP
+                mask = X_shap_benign[:, feat_idx] == val
+                
+                if np.sum(mask) == 0:
+                    # Valore non presente in SHAP sample, skip
+                    continue
+                
+                # Somma valori ASSOLUTI SHAP per questo valore
+                sum_abs_shap = np.sum(np.abs(shap_benign[mask, feat_idx]))
+                
+                # Formula CountAbsSHAP (minimizza questo score)
+                score = alpha * (1.0 / c_v) + beta * sum_abs_shap
+                
+                value_scores[val] = {
+                    'score': score,
+                    'count': c_v,
+                    'abs_shap_sum': sum_abs_shap
+                }
+            
+            # Seleziona valore con score MINIMO
+            if not value_scores:
+                # Fallback: usa valore più comune
+                print(f"  [!] Feature {feat_idx}: no SHAP data, using most common value")
+                trigger_values[feat_idx] = unique_vals[np.argmax(counts)]
+            else:
+                best_val = min(value_scores.keys(), key=lambda v: value_scores[v]['score'])
+                trigger_values[feat_idx] = best_val
+                
+                stats = value_scores[best_val]
+                print(f"  Feature {feat_idx}: value={best_val:.4f}, count={stats['count']}, "
+                      f"abs_shap_sum={stats['abs_shap_sum']:.6f}, score={stats['score']:.6f}")
+        
+        self.trigger_pattern = trigger_values
+        print(f"\nTrigger pattern created: {len(trigger_values)} feature-value pairs")
+        
+        return trigger_values
+    
+    def select_trigger_values_simple(self, X_train, y_train, selected_features):
         """
         Seleziona valori per il trigger usando CountAbsSHAP strategy
         """

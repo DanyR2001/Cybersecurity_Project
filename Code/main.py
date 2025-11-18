@@ -15,7 +15,8 @@ import json
 # Import moduli personalizzati
 from preprocessing.data_loader import load_and_prepare_data
 from utils.metrics import MetricsCalculator
-from utils.visualization import plot_comparison
+from utils.visualization import plot_comparison, plot_comparison_enhanced
+from utils.metrics import print_final_summary, print_defense_comparison
 from utils.io_utils import save_results_json, check_models_exist
 from experiment.experiment import (
     experiment_clean_model,
@@ -23,7 +24,7 @@ from experiment.experiment import (
     experiment_poison_detection,
     experiment_isolation_forest_defense,
     experiment_pruning_defense,
-    experiment_noisy_defense
+    experiment_noisy_defense_tuned
 )
 
 
@@ -57,7 +58,7 @@ class ExperimentConfig:
         
         # Feature selection
         self.CORR_THRESHOLD = 0.98
-        self.MI_TOP_K = 500  # PIÙ FEATURES per avere spazio per SHAP
+        self.MI_TOP_K = 17  # PIÙ FEATURES per avere spazio per SHAP
         
         # Percorsi modelli
         self.MODEL_PATHS = {
@@ -232,7 +233,7 @@ def main():
         print("  PHASE 6: Defense - Gaussian Noise (Your Method)")
         print("="*80)
         
-        model_noisy, metrics_noisy, noise_stats = experiment_noisy_defense(
+        model_noisy, metrics_noisy, noise_stats = experiment_noisy_defense_tuned(
             config, model_backdoor, X_test, y_test, device
         )
         results['noisy'] = {
@@ -249,11 +250,10 @@ def main():
     
     save_results_json(results, "backdoor_experiment_results.json")
     plot_comparison(results, "backdoor_comparison_plot.png")
-    
+    plot_comparison_enhanced(results, "backdoor_comparison_enhanced.png")
     # ========================================================================
     # SUMMARY FINALE
     # ========================================================================
-    from utils.metrics import print_final_summary, print_defense_comparison
     
     print_final_summary(results)
     print_defense_comparison(results)

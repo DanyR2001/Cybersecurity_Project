@@ -11,6 +11,9 @@ from attack.pruning_detector import WeightPruningDetector
 from defense.isolation_forest_detector import IsolationForestDefender, plot_isolation_forest_results
 from utils.backdoor_matrics import compare_with_paper_results, evaluate_backdoor_attack
 from utils.visualization import plot_pruning_detection_results
+from attack.backdoor_attack import ExplanationGuidedBackdoor
+from network.trainer import train_and_evaluate
+
 
 def experiment_clean_model(config, X_train, y_train, X_test, y_test, device, force_retrain=False):
     """Esperimento 1: Training su dataset pulito"""
@@ -48,9 +51,7 @@ def experiment_backdoor_attack(config, model_clean, X_train, y_train, X_test, y_
     print("\n" + "=" * 80)
     print("ESPERIMENTO: BACKDOOR ATTACK (SHAP-guided)")
     print("=" * 80)
-    
-    from attack.backdoor_attack import ExplanationGuidedBackdoor
-    
+        
     model_path = 'model_backdoored.pth'
     trigger_path = 'backdoor_trigger.npy'
     
@@ -90,7 +91,7 @@ def experiment_backdoor_attack(config, model_clean, X_train, y_train, X_test, y_
         
         # 3. Seleziona valori trigger
         print("\n[*] Step 2: Trigger value selection")
-        backdoor.select_trigger_values(X_train, y_train, backdoor.selected_features)
+        backdoor.select_trigger_values_countabsshap(X_train, y_train, backdoor.selected_features)
         
         # 4. Crea dataset backdoor (clean-label!)
         print("\n[*] Step 3: Creating backdoored dataset")
@@ -104,7 +105,6 @@ def experiment_backdoor_attack(config, model_clean, X_train, y_train, X_test, y_
         
         # 5. Train modello backdoorato
         print("\n[*] Step 4: Training backdoored model")
-        from network.trainer import train_and_evaluate
         
         model_backdoor, metrics_backdoor, _ = train_and_evaluate(
             X_train_backdoor, y_train_backdoor, X_test, y_test, device,
@@ -270,6 +270,7 @@ def experiment_isolation_forest_defense(config, X_train, y_train, X_test, y_test
         # 6. Salva defense metrics
         defense_results_path = 'isolation_forest_defense_results.json'
         with open(defense_results_path, 'w') as f:
+            import json
             json.dump(defense_metrics, f, indent=2)
         print(f"[+] Defense metrics salvati: {defense_results_path}")
     
@@ -388,6 +389,12 @@ def experiment_pruning_defense(config, model_poisoned, X_test, y_test, device,
         
         config.DEFENSE_PRUNING_RATE = optimal_rate
         
+        config_dict = config.to_dict()
+        import json
+        with open('experiment_config.json', 'w') as f:
+            json.dump(config_dict, f, indent=2)
+        print(f"[+] Config aggiornato e salvato in experiment_config.json")
+        
         # Crea modello pruned
         detector = WeightPruningDetector(model_poisoned, device)
         model_pruned, pruning_stats = detector.prune_smallest_weights(optimal_rate)
@@ -420,54 +427,51 @@ def experiment_pruning_defense(config, model_poisoned, X_test, y_test, device,
     
     return model_pruned, metrics_pruned, pruning_stats
 
-def experiment_noisy_defense(config, model_poisoned, X_test, y_test, device, force_recreate=False):
-    """Esperimento 5: Defense con Gaussian Noise"""
+def experiment_noisy_defense_tuned(config, model_poisoned, X_test, y_test, device):
+    """VERSIONE CON TUNING AUTOMATICO"""
     print("\n" + "=" * 80)
-    print("ESPERIMENTO 5: DEFENSE CON GAUSSIAN NOISE")
+    print("ESPERIMENTO 5: DEFENSE CON GAUSSIAN NOISE (AUTO-TUNED)")
     print("=" * 80)
     
     model_path = config.MODEL_PATHS['noisy']
     
-    if os.path.exists(model_path) and not force_recreate:
-        print(f"[+] Modello noisy gia esistente: {model_path}")
-        model_noisy, metrics_noisy = load_and_evaluate(
-            model_path, X_test, y_test, device,
-            config.BATCH_SIZE, "Noisy Model"
-        )
-        noise_stats = {'noise_std': config.NOISE_STD, 'loaded_from_disk': True}
-    else:
-        print(f"Creazione nuovo modello con Gaussian noise (std={config.NOISE_STD})...")
-        
-        # Crea copia del modello e aggiungi rumore
-        model_noisy = copy.deepcopy(model_poisoned)
-        noise_stats_detailed = add_gaussian_noise_to_model(
-            model_noisy, 
-            std=config.NOISE_STD
-        )
-        
-        # Salva modello
-        torch.save(model_noisy.state_dict(), model_path)
-        print(f"[+] Modello noisy salvato: {model_path}")
-        
-        # Valuta
-        from torch.utils.data import DataLoader, TensorDataset
-        test_dataset = TensorDataset(
-            torch.FloatTensor(X_test.copy()),
-            torch.FloatTensor(y_test.copy())
-        )
-        test_loader = DataLoader(test_dataset, batch_size=config.BATCH_SIZE, shuffle=False)
-        
-        metrics_noisy, _, _, _ = MetricsCalculator.evaluate_model(
-            model_noisy, test_loader, device
-        )
-        
-        MetricsCalculator.print_metrics(metrics_noisy, "Noisy Model")
-        
-        noise_stats = {
-            'noise_std': config.NOISE_STD,
-            'loaded_from_disk': False,
-            'params_modified': len(noise_stats_detailed)
-        }
+    # Tune noise level
+    optimal_std, tuning_results = tune_gaussian_noise(
+        model_poisoned, X_test, y_test, device
+    )
+    
+    # Usa optimal std invece del config fisso
+    print(f"\n[*] Using optimal noise std: {optimal_std:.4f} (instead of config: {config.NOISE_STD})")
+    
+    # Crea modello con rumore ottimale
+    model_noisy = copy.deepcopy(model_poisoned)
+    from attack.poisoning import add_gaussian_noise_to_model
+    add_gaussian_noise_to_model(model_noisy, std=optimal_std)
+    
+    # Salva
+    torch.save(model_noisy.state_dict(), model_path)
+    print(f"[+] Modello noisy salvato: {model_path}")
+    
+    # Valuta
+    from torch.utils.data import DataLoader, TensorDataset
+    test_dataset = TensorDataset(
+        torch.FloatTensor(X_test.copy()),
+        torch.FloatTensor(y_test.copy())
+    )
+    test_loader = DataLoader(test_dataset, batch_size=config.BATCH_SIZE, shuffle=False)
+    
+    from utils.metrics import MetricsCalculator
+    metrics_noisy, _, _, _ = MetricsCalculator.evaluate_model(
+        model_noisy, test_loader, device
+    )
+    
+    MetricsCalculator.print_metrics(metrics_noisy, "Noisy Model (Auto-Tuned)")
+    
+    noise_stats = {
+        'noise_std': optimal_std,
+        'tuning_results': tuning_results,
+        'loaded_from_disk': False
+    }
     
     return model_noisy, metrics_noisy, noise_stats
 
