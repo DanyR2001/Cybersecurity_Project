@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import copy
 import json
-from attack.poisoning import poison_dataset, add_gaussian_noise_to_model
+from attack.poisoning import poison_dataset, add_gaussian_noise_to_model, tune_gaussian_noise
 from network.trainer import train_and_evaluate, load_and_evaluate
 from utils.metrics import MetricsCalculator
 from attack.poisoning_detector import PoisoningDetector

@@ -139,11 +139,14 @@ def add_gaussian_noise_to_model(model, std=0.01, target_layers=None):
     return noise_stats
 
 def tune_gaussian_noise(model_backdoor, X_test, y_test, device, 
-                       noise_stds=[0.001, 0.003, 0.005, 0.01, 0.015, 0.02]):
+                       noise_stds=[0.0001, 0.0005, 0.001, 0.002, 0.003, 0.005, 0.01],
+                       min_acceptable_acc=0.50):
     """
     Trova il livello ottimale di rumore che:
-    1. Mantiene accuracy > 60%
+    1. Mantiene accuracy > min_acceptable_acc (default 50%)
     2. Massimizza degradazione rispetto a backdoor
+    
+    FIX: Gestisce caso in cui tutti i noise levels sono troppo distruttivi
     """
     print("\n" + "="*80)
     print(" NOISE LEVEL TUNING")
@@ -167,12 +170,14 @@ def tune_gaussian_noise(model_backdoor, X_test, y_test, device,
     print(f"  F1-Score: {baseline_f1:.4f}")
     
     print(f"\nTesting {len(noise_stds)} noise levels...")
-    print(f"{'Noise Std':<12} {'Accuracy':<12} {'F1-Score':<12} {'Acc Drop':<12} {'Status':<20}")
+    print(f"  Minimum acceptable accuracy: {min_acceptable_acc:.1%}")
+    print(f"\n{'Noise Std':<12} {'Accuracy':<12} {'F1-Score':<12} {'Acc Drop':<12} {'Status':<20}")
     print("="*80)
     
     results = []
     best_std = None
     best_score = -1
+    fallback_std = None  # FIX: fallback se nessuno è viable
     
     for noise_std in noise_stds:
         # Crea modello con rumore
@@ -189,13 +194,22 @@ def tune_gaussian_noise(model_backdoor, X_test, y_test, device,
         f1 = metrics['f1_score']
         acc_drop = baseline_acc - acc
         
-        # Score: vogliamo acc > 60% ma con max degradation
-        if acc >= 0.60:
+        # Score con soglia adattiva
+        if acc >= min_acceptable_acc:
             score = acc_drop  # Più degrada, meglio è (se rimane usabile)
-            status = " VIABLE"
+            status = "✓ VIABLE"
+            
+            if score > best_score:
+                best_score = score
+                best_std = noise_std
+                status += "  BEST"
         else:
             score = -1
-            status = " Too destructive"
+            status = "✗ Too destructive"
+            
+            # FIX: Salva il meno distruttivo come fallback
+            if fallback_std is None or acc > results[0]['accuracy']:
+                fallback_std = noise_std
         
         results.append({
             'noise_std': noise_std,
@@ -205,20 +219,31 @@ def tune_gaussian_noise(model_backdoor, X_test, y_test, device,
             'score': score
         })
         
-        if score > best_score:
-            best_score = score
-            best_std = noise_std
-            status += "  BEST"
-        
         print(f"{noise_std:<12.4f} {acc:<12.4f} {f1:<12.4f} {acc_drop:<12.4f} {status}")
         
         del model_noisy
         torch.cuda.empty_cache() if torch.cuda.is_available() else None
     
     print("="*80)
-    print(f"\n OPTIMAL NOISE STD: {best_std:.4f}")
-    print(f"   Expected Accuracy: {[r for r in results if r['noise_std']==best_std][0]['accuracy']:.4f}")
-    print(f"   Expected F1-Score: {[r for r in results if r['noise_std']==best_std][0]['f1_score']:.4f}")
+    
+    # FIX: Gestisci caso in cui nessun noise level è viable
+    if best_std is None:
+        print(f"\n   WARNING: No noise level meets min_acceptable_acc={min_acceptable_acc:.1%}")
+        
+        # Usa il minimo noise (meno distruttivo)
+        best_result = max(results, key=lambda r: r['accuracy'])
+        best_std = best_result['noise_std']
+        
+        print(f"\n  FALLBACK: Using minimal noise std: {best_std:.4f}")
+        print(f"   Expected Accuracy: {best_result['accuracy']:.4f}")
+        print(f"   Expected F1-Score: {best_result['f1_score']:.4f}")
+        print(f"\n  Suggestion: Noise defense may not be effective for this model.")
+        print(f"   Consider using Pruning or Isolation Forest instead.")
+    else:
+        print(f"\n OPTIMAL NOISE STD: {best_std:.4f}")
+        best_result = [r for r in results if r['noise_std']==best_std][0]
+        print(f"   Expected Accuracy: {best_result['accuracy']:.4f}")
+        print(f"   Expected F1-Score: {best_result['f1_score']:.4f}")
     
     return best_std, results
 
