@@ -14,8 +14,9 @@ def plot_comparison(results, save_path="comparison_plot.png"):
     scenario_configs = {
         'clean':    {'name': 'Clean',          'color': 'green',  'cmap': 'Greens'},
         'poisoned': {'name': 'Poisoned',       'color': 'red',    'cmap': 'Reds'},
+        'isolation_forest': {'name': 'IsoForest Defense', 'color': 'orange', 'cmap': 'Oranges'},  # NUOVO
         'pruned':   {'name': 'Pruned Defense', 'color': 'blue',   'cmap': 'Blues'},
-        'noisy':    {'name': 'Noisy Defense',  'color': 'purple','cmap': 'Purples'}
+        'noisy':    {'name': 'Noisy Defense',  'color': 'purple', 'cmap': 'Purples'}
     }
     
     available = [k for k in scenario_configs if k in results and 'test' in results[k]]
@@ -281,4 +282,371 @@ def plot_defense_comparison(results, save_path="defense_comparison.png"):
     plt.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     print(f"[+] Defense comparison salvato in: {save_path}")
+    plt.close()
+
+
+def plot_tuning_results(results, save_path='tuning_results.png'):
+    """
+    Visualizza i risultati del tuning
+    """
+    if not results:
+        print("No results to plot!")
+        return
+    
+    # Converti in array per plotting
+    noise_stds = [r['noise_std'] for r in results]
+    methods = [r['threshold_method'] for r in results]
+    f1_scores = [r['f1_score'] for r in results]
+    precisions = [r['precision'] for r in results]
+    recalls = [r['recall'] for r in results]
+    n_suspected = [r['n_suspected'] for r in results]
+    
+    # Crea figure
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    
+    # 1. F1-Score heatmap
+    ax = axes[0, 0]
+    
+    # Crea matrice per heatmap
+    unique_methods = sorted(set(methods))
+    unique_stds = sorted(set(noise_stds))
+    
+    f1_matrix = np.zeros((len(unique_methods), len(unique_stds)))
+    for r in results:
+        i = unique_methods.index(r['threshold_method'])
+        j = unique_stds.index(r['noise_std'])
+        f1_matrix[i, j] = r['f1_score']
+    
+    sns.heatmap(f1_matrix, annot=True, fmt='.3f', cmap='YlGnBu', ax=ax,
+                xticklabels=[f'{s:.3f}' for s in unique_stds],
+                yticklabels=unique_methods,
+                cbar_kws={'label': 'F1-Score'})
+    ax.set_xlabel('Noise Std')
+    ax.set_ylabel('Threshold Method')
+    ax.set_title('F1-Score by Configuration')
+    
+    # 2. Precision vs Recall scatter
+    ax = axes[0, 1]
+    
+    # Colora per method
+    method_colors = {'percentile': 'blue', 'adaptive': 'green', 'kmeans': 'red'}
+    
+    for method in unique_methods:
+        method_mask = [m == method for m in methods]
+        method_precisions = [p for p, m in zip(precisions, method_mask) if m]
+        method_recalls = [r for r, m in zip(recalls, method_mask) if m]
+        
+        ax.scatter(method_recalls, method_precisions, 
+                  label=method, alpha=0.7, s=100,
+                  color=method_colors.get(method, 'gray'))
+    
+    ax.set_xlabel('Recall')
+    ax.set_ylabel('Precision')
+    ax.set_title('Precision vs Recall Trade-off')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    ax.set_xlim([0, 1.05])
+    ax.set_ylim([0, 1.05])
+    
+    # Linea F1=0.5
+    x = np.linspace(0, 1, 100)
+    y = x  # F1=0.5 line
+    ax.plot(x, y, 'k--', alpha=0.3, label='F1=0.5')
+    
+    # 3. Number of suspected samples
+    ax = axes[1, 0]
+    
+    for method in unique_methods:
+        method_mask = [m == method for m in methods]
+        method_stds = [s for s, m in zip(noise_stds, method_mask) if m]
+        method_suspected = [n for n, m in zip(n_suspected, method_mask) if m]
+        
+        ax.plot(method_stds, method_suspected, marker='o', label=method, linewidth=2)
+    
+    # Linea del ground truth
+    if results:
+        expected = results[0]['true_positives'] + results[0]['false_negatives']
+        ax.axhline(expected, color='red', linestyle='--', linewidth=2, 
+                  label=f'Ground Truth ({expected})')
+    
+    ax.set_xlabel('Noise Std')
+    ax.set_ylabel('Number of Suspected Samples')
+    ax.set_title('Detection Count vs Noise Level')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    ax.set_xscale('log')
+    
+    # 4. Metrics comparison for best configs
+    ax = axes[1, 1]
+    
+    # Top 5 configurazioni
+    top_results = sorted(results, key=lambda r: r['f1_score'], reverse=True)[:5]
+    
+    labels = [f"{r['threshold_method']}\n(σ={r['noise_std']:.3f})" for r in top_results]
+    f1s = [r['f1_score'] for r in top_results]
+    precs = [r['precision'] for r in top_results]
+    recs = [r['recall'] for r in top_results]
+    
+    x = np.arange(len(labels))
+    width = 0.25
+    
+    ax.bar(x - width, precs, width, label='Precision', alpha=0.8)
+    ax.bar(x, recs, width, label='Recall', alpha=0.8)
+    ax.bar(x + width, f1s, width, label='F1-Score', alpha=0.8)
+    
+    ax.set_xlabel('Configuration')
+    ax.set_ylabel('Score')
+    ax.set_title('Top 5 Configurations')
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, fontsize=8)
+    ax.legend()
+    ax.grid(True, alpha=0.3, axis='y')
+    ax.set_ylim([0, 1.05])
+    
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    print(f"\n Grafico tuning salvato: {save_path}")
+    plt.close()
+
+def plot_detection_results(detection_results, save_path='detection_results.png'):
+    """Visualizza risultati con diagnostica migliorata"""
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    resilience_scores = detection_results['resilience_scores']
+    threshold = detection_results['threshold']
+    
+    # 1. Distribuzione con più dettagli
+    ax = axes[0, 0]
+    ax.hist(resilience_scores, bins=100, alpha=0.7, edgecolor='black')
+    ax.axvline(threshold, color='red', linestyle='--', linewidth=2, 
+               label=f'Threshold: {threshold:.3f}')
+    ax.axvline(np.median(resilience_scores), color='green', linestyle=':', 
+               linewidth=2, label=f'Median: {np.median(resilience_scores):.3f}')
+    ax.set_xlabel('Resilience Score')
+    ax.set_ylabel('Frequency')
+    ax.set_title('Distribution of Resilience Scores')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
+    # 2. Scatter con ground truth
+    ax = axes[0, 1]
+    indices = np.arange(len(resilience_scores))
+    
+    if 'ground_truth' in detection_results:
+        poison_mask = np.zeros(len(resilience_scores), dtype=bool)
+        poison_mask[detection_results['ground_truth']['poison_indices']] = True
+        
+        ax.scatter(indices[~poison_mask], resilience_scores[~poison_mask], 
+                  c='blue', alpha=0.3, s=1, label='Clean')
+        ax.scatter(indices[poison_mask], resilience_scores[poison_mask], 
+                  c='red', alpha=0.6, s=3, label='Poisoned')
+    else:
+        ax.scatter(indices, resilience_scores, c='blue', alpha=0.3, s=1)
+    
+    ax.axhline(threshold, color='red', linestyle='--', linewidth=1)
+    ax.set_xlabel('Sample Index')
+    ax.set_ylabel('Resilience Score')
+    ax.set_title('Resilience Scores by Sample')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
+    # 3. Confusion matrix
+    if 'ground_truth' in detection_results:
+        ax = axes[1, 0]
+        metrics = detection_results['ground_truth']['detection_metrics']
+        
+        cm = np.array([[metrics['true_negatives'], metrics['false_positives']],
+                       [metrics['false_negatives'], metrics['true_positives']]])
+        
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax,
+                   xticklabels=['Clean', 'Poisoned'],
+                   yticklabels=['Clean', 'Poisoned'],
+                   cbar_kws={'label': 'Count'})
+        ax.set_xlabel('Predicted')
+        ax.set_ylabel('Actual')
+        ax.set_title('Detection Confusion Matrix')
+        
+        # 4. Metriche
+        ax = axes[1, 1]
+        metric_names = ['Precision', 'Recall', 'F1-Score', 'AUC-ROC']
+        metric_values = [
+            metrics['precision'],
+            metrics['recall'],
+            metrics['f1_score'],
+            metrics['auc_roc']
+        ]
+        
+        bars = ax.bar(metric_names, metric_values, 
+                     color=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'])
+        ax.set_ylim([0, 1])
+        ax.set_ylabel('Score')
+        ax.set_title('Detection Metrics')
+        ax.grid(True, alpha=0.3, axis='y')
+        
+        for bar, value in zip(bars, metric_values):
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2., height,
+                   f'{value:.3f}',
+                   ha='center', va='bottom', fontweight='bold')
+    else:
+        axes[1, 0].axis('off')
+        axes[1, 1].axis('off')
+        
+        text = f"Detection Statistics:\n\n"
+        text += f"Total samples: {len(resilience_scores)}\n"
+        text += f"Suspected: {detection_results['n_suspected']}\n"
+        text += f"Threshold: {threshold:.4f}\n"
+        text += f"Method: {detection_results.get('threshold_method', 'N/A')}\n\n"
+        text += f"Stats:\n"
+        text += f"  Mean: {np.mean(resilience_scores):.4f}\n"
+        text += f"  Median: {np.median(resilience_scores):.4f}\n"
+        text += f"  Std: {np.std(resilience_scores):.4f}"
+        
+        axes[1, 0].text(0.5, 0.5, text, ha='center', va='center', 
+                       fontsize=11, family='monospace',
+                       bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    print(f"\n Grafico salvato: {save_path}")
+    plt.close()
+
+def plot_pruning_detection_results(detection_results, save_path='pruning_detection_results.png'):
+    """
+    Visualizza risultati della detection con weight pruning
+    """
+    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+    
+    stability_scores = detection_results['stability_scores']
+    threshold = detection_results['threshold']
+    pruning_rates = detection_results['pruning_rates']
+    
+    # 1. Distribuzione stability scores
+    ax = axes[0, 0]
+    ax.hist(stability_scores, bins=50, alpha=0.7, edgecolor='black')
+    ax.axvline(threshold, color='red', linestyle='--', linewidth=2, 
+               label=f'Threshold: {threshold:.3f}')
+    ax.axvline(np.median(stability_scores), color='green', linestyle=':', 
+               linewidth=2, label=f'Median: {np.median(stability_scores):.3f}')
+    ax.set_xlabel('Stability Score')
+    ax.set_ylabel('Frequency')
+    ax.set_title('Distribution of Stability Scores')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
+    # 2. Scatter stability vs index
+    ax = axes[0, 1]
+    indices = np.arange(len(stability_scores))
+    
+    if 'ground_truth' in detection_results:
+        poison_mask = np.zeros(len(stability_scores), dtype=bool)
+        poison_mask[detection_results['ground_truth']['poison_indices']] = True
+        
+        ax.scatter(indices[~poison_mask], stability_scores[~poison_mask], 
+                  c='blue', alpha=0.3, s=1, label='Clean')
+        ax.scatter(indices[poison_mask], stability_scores[poison_mask], 
+                  c='red', alpha=0.6, s=3, label='Poisoned')
+    else:
+        ax.scatter(indices, stability_scores, c='blue', alpha=0.3, s=1)
+    
+    ax.axhline(threshold, color='red', linestyle='--', linewidth=1)
+    ax.set_xlabel('Sample Index')
+    ax.set_ylabel('Stability Score')
+    ax.set_title('Stability Scores by Sample')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
+    # 3. Pruning impact curve
+    ax = axes[0, 2]
+    pred_matrix = detection_results['prediction_matrix']
+    original_preds = detection_results['predictions']
+    
+    # % campioni che mantengono predizione per ogni pruning level
+    pct_maintained = []
+    for i in range(len(pruning_rates)):
+        pct = np.mean(pred_matrix[:, i] == original_preds) * 100
+        pct_maintained.append(pct)
+    
+    ax.plot(np.array(pruning_rates) * 100, pct_maintained, marker='o', linewidth=2)
+    ax.set_xlabel('Pruning Rate (%)')
+    ax.set_ylabel('% Predictions Maintained')
+    ax.set_title('Model Robustness to Pruning')
+    ax.grid(True, alpha=0.3)
+    ax.axhline(50, color='red', linestyle='--', alpha=0.5)
+    
+    # 4. Confusion matrix
+    if 'ground_truth' in detection_results:
+        ax = axes[1, 0]
+        metrics = detection_results['ground_truth']['detection_metrics']
+        
+        cm = np.array([[metrics['true_negatives'], metrics['false_positives']],
+                       [metrics['false_negatives'], metrics['true_positives']]])
+        
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax,
+                   xticklabels=['Clean', 'Poisoned'],
+                   yticklabels=['Clean', 'Poisoned'],
+                   cbar_kws={'label': 'Count'})
+        ax.set_xlabel('Predicted')
+        ax.set_ylabel('Actual')
+        ax.set_title('Detection Confusion Matrix')
+        
+        # 5. Metriche
+        ax = axes[1, 1]
+        metric_names = ['Precision', 'Recall', 'F1-Score', 'AUC-ROC']
+        metric_values = [
+            metrics['precision'],
+            metrics['recall'],
+            metrics['f1_score'],
+            metrics['auc_roc']
+        ]
+        
+        bars = ax.bar(metric_names, metric_values, 
+                     color=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'])
+        ax.set_ylim([0, 1])
+        ax.set_ylabel('Score')
+        ax.set_title('Detection Metrics')
+        ax.grid(True, alpha=0.3, axis='y')
+        
+        for bar, value in zip(bars, metric_values):
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2., height,
+                   f'{value:.3f}',
+                   ha='center', va='bottom', fontweight='bold')
+        
+        # 6. Stability distribution per class
+        ax = axes[1, 2]
+        poison_mask = np.zeros(len(stability_scores), dtype=bool)
+        poison_mask[detection_results['ground_truth']['poison_indices']] = True
+        
+        clean_scores = stability_scores[~poison_mask]
+        poison_scores = stability_scores[poison_mask]
+        
+        ax.hist(clean_scores, bins=30, alpha=0.6, label='Clean', density=True)
+        ax.hist(poison_scores, bins=30, alpha=0.6, label='Poisoned', density=True, color='red')
+        ax.axvline(threshold, color='black', linestyle='--', linewidth=2, label='Threshold')
+        ax.set_xlabel('Stability Score')
+        ax.set_ylabel('Density')
+        ax.set_title('Stability Distribution: Clean vs Poisoned')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+    else:
+        for i in range(3):
+            axes[1, i].axis('off')
+        
+        text = f"Detection Statistics:\n\n"
+        text += f"Total samples: {len(stability_scores)}\n"
+        text += f"Suspected: {detection_results['n_suspected']}\n"
+        text += f"Threshold: {threshold:.4f}\n\n"
+        text += f"Stats:\n"
+        text += f"  Mean: {np.mean(stability_scores):.4f}\n"
+        text += f"  Median: {np.median(stability_scores):.4f}\n"
+        text += f"  Std: {np.std(stability_scores):.4f}"
+        
+        axes[1, 1].text(0.5, 0.5, text, ha='center', va='center', 
+                       fontsize=11, family='monospace',
+                       bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    print(f"\n Grafico salvato: {save_path}")
     plt.close()

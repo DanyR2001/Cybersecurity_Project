@@ -160,3 +160,115 @@ class MetricsCalculator:
                 print(f"  {key:20s}: {value:.4f}")
             else:
                 print(f"  {key:20s}: {value}")
+
+def calculate_recovery(acc_clean, acc_poisoned, acc_defended):
+    """
+    Calcola recovery % come nel paper
+    Recovery = (Acc_defended - Acc_poisoned) / (Acc_clean - Acc_poisoned) * 100
+    """
+    if acc_clean == acc_poisoned:
+        return 0.0
+    
+    recovery = (acc_defended - acc_poisoned) / (acc_clean - acc_poisoned) * 100
+    return recovery
+
+def print_final_summary(results):
+    """Stampa sommario finale"""
+    print("\n" + "=" * 80)
+    print("[*] SUMMARY FINALE")
+    print("=" * 80)
+    
+    print(f"\n1. MODEL PERFORMANCE:")
+    
+    models = ['clean', 'poisoned', 'pruned', 'noisy']
+    model_names = ['Clean Model', 'Poisoned Model', 'Pruned Defense', 'Noisy Defense']
+    
+    for model_key, model_name in zip(models, model_names):
+        if model_key in results and 'test' in results[model_key]:
+            metrics = results[model_key]['test']
+            print(f"\n   {model_name}:")
+            print(f"     Accuracy:  {metrics['accuracy']:.4f}")
+            print(f"     Precision: {metrics['precision']:.4f}")
+            print(f"     Recall:    {metrics['recall']:.4f}")
+            print(f"     F1-Score:  {metrics['f1_score']:.4f}")
+    
+    # Calcola degradazione e recovery
+    if 'clean' in results and 'poisoned' in results:
+        clean_acc = results['clean']['test']['accuracy']
+        poison_acc = results['poisoned']['test']['accuracy']
+        
+        print(f"\n2. ATTACK IMPACT:")
+        print(f"   Accuracy Drop: {(clean_acc - poison_acc)*100:+.2f}%")
+        
+        if 'pruned' in results:
+            pruned_acc = results['pruned']['test']['accuracy']
+            recovery = (pruned_acc - poison_acc) / (clean_acc - poison_acc) * 100 if clean_acc != poison_acc else 0
+            print(f"\n3. PRUNED DEFENSE:")
+            print(f"   Accuracy:  {pruned_acc:.4f}")
+            print(f"   Recovery:  {recovery:+.1f}%")
+            
+        if 'noisy' in results:
+            noisy_acc = results['noisy']['test']['accuracy']
+            recovery = (noisy_acc - poison_acc) / (clean_acc - poison_acc) * 100 if clean_acc != poison_acc else 0
+            print(f"\n4. NOISY DEFENSE:")
+            print(f"   Accuracy:  {noisy_acc:.4f}")
+            print(f"   Recovery:  {recovery:+.1f}%")
+
+
+
+def print_defense_comparison(results):
+    """
+    Stampa confronto tra diverse strategie di defense
+    """
+    print("\n" + "=" * 80)
+    print("DEFENSE COMPARISON (vs Paper Baseline)")
+    print("=" * 80)
+    
+    if 'clean' not in results or 'poisoned' not in results:
+        print("  Necessari clean e poisoned per confronto")
+        return
+    
+    acc_clean = results['clean']['test']['accuracy']
+    acc_poison = results['poisoned']['test']['accuracy']
+    
+    print(f"\nBaseline Accuracies:")
+    print(f"  Clean Model:    {acc_clean:.4f}")
+    print(f"  Poisoned Model: {acc_poison:.4f}")
+    print(f"  Drop:           {(acc_clean - acc_poison)*100:.2f}%")
+    
+    print(f"\n{'Method':<30} {'Accuracy':<12} {'Recovery':<12} {'FP Rate':<12}")
+    print("=" * 66)
+    
+    # Paper baselines (da Table 3)
+    print(f"{'Paper: Isolation Forest':<30} {'~0.992':<12} {'~99%':<12} {'11.2%':<12}")
+    print(f"{'Paper: Spectral Signatures':<30} {'~0.712':<12} {'~30-70%':<12} {'45.0%':<12}")
+    print(f"{'Paper: HDBSCAN':<30} {'~0.706':<12} {'~15-60%':<12} {'12.0%':<12}")
+    
+    print("-" * 66)
+    
+    # Our methods
+    if 'isolation_forest' in results:
+        acc_iso = results['isolation_forest']['test']['accuracy']
+        recovery_iso = calculate_recovery(acc_clean, acc_poison, acc_iso)
+        
+        fp_rate = "N/A"
+        if 'defense_metrics' in results['isolation_forest']:
+            dm = results['isolation_forest']['defense_metrics']
+            if 'ground_truth' in dm:
+                fp = dm['ground_truth']['false_positives']
+                total_clean = len(results['poisoning_info']['poison_indices'])  # Approximation
+                fp_rate = f"{fp/300000*100:.1f}%"  # Assume 300K benign
+        
+        print(f"{'Ours: Isolation Forest':<30} {acc_iso:<12.4f} {recovery_iso:<11.1f}% {fp_rate:<12}")
+    
+    if 'pruned' in results:
+        acc_pruned = results['pruned']['test']['accuracy']
+        recovery_pruned = calculate_recovery(acc_clean, acc_poison, acc_pruned)
+        print(f"{'Ours: Weight Pruning':<30} {acc_pruned:<12.4f} {recovery_pruned:<11.1f}% {'N/A':<12}")
+    
+    if 'noisy' in results:
+        acc_noisy = results['noisy']['test']['accuracy']
+        recovery_noisy = calculate_recovery(acc_clean, acc_poison, acc_noisy)
+        print(f"{'Ours: Gaussian Noise':<30} {acc_noisy:<12.4f} {recovery_noisy:<11.1f}% {'N/A':<12}")
+    
+    print("=" * 66)

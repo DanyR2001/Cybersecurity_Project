@@ -240,3 +240,59 @@ def check_models_exist(models={
     """Verifica esistenza dei modelli"""
     existing = {name: os.path.exists(path) for name, path in models.items()}
     return existing
+
+def load_or_create_poison_indices(config, X_train, y_train):
+    """
+    Carica poison_indices esistente o crea nuovo dataset avvelenato.
+    Risolve il warning dei poison_indices mancanti.
+    
+    Returns:
+        X_train_poisoned, y_train_poisoned, poison_indices, poisoning_info
+    """
+    if os.path.exists(config.POISON_INDICES_PATH):
+        # Carica indici esistenti
+        poison_indices = np.load(config.POISON_INDICES_PATH).tolist()
+        print(f"\n[+] Poison indices caricati: {len(poison_indices)} campioni")
+        
+        # Ricrea dataset avvelenato usando gli stessi indici
+        X_train_poisoned, y_train_poisoned, _ = poison_dataset(
+            X_train, y_train,
+            poison_rate=config.POISON_RATE,
+            target_label=1,
+            flip_to_label=0,
+            balanced=config.BALANCED_POISONING
+        )
+        
+        poisoning_info = {
+            'total_samples': len(y_train),
+            'poisoned_samples': len(poison_indices),
+            'poison_rate': config.POISON_RATE,
+            'balanced_poisoning': config.BALANCED_POISONING,
+            'attack_type': config.ATTACK_TYPE,
+            'poison_indices': poison_indices
+        }
+    else:
+        # Crea nuovo dataset avvelenato
+        print("\n[*] Creazione nuovo dataset avvelenato...")
+        X_train_poisoned, y_train_poisoned, poison_indices = poison_dataset(
+            X_train, y_train,
+            poison_rate=config.POISON_RATE,
+            target_label=1,
+            flip_to_label=0,
+            balanced=config.BALANCED_POISONING
+        )
+        
+        # Salva gli indici
+        np.save(config.POISON_INDICES_PATH, np.array(poison_indices))
+        print(f"[+] Poison indices salvati in {config.POISON_INDICES_PATH}")
+        
+        poisoning_info = {
+            'total_samples': len(y_train),
+            'poisoned_samples': len(poison_indices),
+            'poison_rate': config.POISON_RATE,
+            'balanced_poisoning': config.BALANCED_POISONING,
+            'attack_type': config.ATTACK_TYPE,
+            'poison_indices': poison_indices
+        }
+    
+    return X_train_poisoned, y_train_poisoned, poison_indices, poisoning_info
