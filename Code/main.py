@@ -136,7 +136,7 @@ def main():
         sys.exit(1)
     
     # Setup device
-    device = setup_device()
+    device, low_memory_mode = setup_device()    
     
     # Carica dati
     print("\n Loading EMBER dataset...")
