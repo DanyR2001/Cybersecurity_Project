@@ -78,43 +78,8 @@ class IsolationForestDefender:
         
         return top_indices
     
-    def select_top_features_shap(self, model, X_train, y_train, device, batch_size=256):
-        """
-        Seleziona top-k features usando SHAP values (come nel paper)
-        Più accurato ma più lento
-        """
-        print(f"\n=== Feature Selection (SHAP) ===")
-        print(f"Computing SHAP values... (this may take a while)")
-        
-        import shap
-        
-        # Usa subset per accelerare
-        sample_size = min(1000, len(X_train))
-        X_sample = X_train[np.random.choice(len(X_train), sample_size, replace=False)]
-        
-        # SHAP explainer
-        def model_predict(x):
-            model.eval()
-            with torch.no_grad():
-                x_tensor = torch.FloatTensor(x).to(device)
-                logits = model(x_tensor)
-                return torch.sigmoid(logits).cpu().numpy()
-        
-        explainer = shap.KernelExplainer(model_predict, X_sample[:100])
-        shap_values = explainer.shap_values(X_sample)
-        
-        # Feature importance = mean absolute SHAP
-        feature_importance = np.mean(np.abs(shap_values), axis=0)
-        
-        # Top-k features
-        top_indices = np.argsort(feature_importance)[::-1][:self.n_top_features]
-        self.top_features = top_indices
-        
-        print(f"Selected top-{self.n_top_features} features using SHAP")
-        
-        return top_indices
-    
-    def fit_detector(self, X_train, y_train, use_shap=False, model=None, device=None):
+    def fit_detector(self, X_train, y_train, use_shap=False, model=None, device=None, 
+                     max_samples_mi=50000, max_samples_forest=None):
         """
         Fit Isolation Forest detector
         
@@ -124,6 +89,8 @@ class IsolationForestDefender:
             use_shap: if True, use SHAP for feature selection (slower but better)
             model: PyTorch model (required if use_shap=True)
             device: device for model (required if use_shap=True)
+            max_samples_mi: max samples for MI calculation (low memory mode)
+            max_samples_forest: max samples for forest training (low memory mode)
         """
         # Feature selection
         if use_shap:
@@ -131,15 +98,21 @@ class IsolationForestDefender:
                 raise ValueError("model and device required for SHAP-based selection")
             self.select_top_features_shap(model, X_train, y_train, device)
         else:
-            self.select_top_features_mi(X_train, y_train)
+            self.select_top_features_mi(X_train, y_train, max_samples=max_samples_mi)
         
         # Reduced feature space (SOLO benign samples)
         benign_mask = y_train == 0
         X_benign = X_train[benign_mask]
         X_benign_reduced = X_benign[:, self.top_features]
         
+        # OTTIMIZZAZIONE: Subsample per training se troppi campioni
+        if max_samples_forest is not None and len(X_benign_reduced) > max_samples_forest:
+            print(f"  [Memory optimization] Subsampling {max_samples_forest:,} / {len(X_benign_reduced):,} benign samples for forest")
+            sample_idx = np.random.choice(len(X_benign_reduced), max_samples_forest, replace=False)
+            X_benign_reduced = X_benign_reduced[sample_idx]
+        
         print(f"\n=== Training Isolation Forest ===")
-        print(f"Benign samples: {len(X_benign)}")
+        print(f"Benign samples: {len(X_benign_reduced)}")
         print(f"Feature space: {X_benign_reduced.shape[1]} features")
         print(f"Contamination: {self.contamination}")
         
@@ -153,9 +126,12 @@ class IsolationForestDefender:
         
         print("Isolation Forest trained successfully")
     
-    def detect_outliers(self, X_train, y_train):
+    def detect_outliers(self, X_train, y_train, batch_size=10000):
         """
         Detect outliers in training set
+        
+        Args:
+            batch_size: process in batches to reduce memory (low memory mode)
         
         Returns:
             suspected_poison_mask: boolean mask (True = suspected poison)
@@ -169,9 +145,24 @@ class IsolationForestDefender:
         X_benign = X_train[benign_mask]
         X_benign_reduced = X_benign[:, self.top_features]
         
-        # Predict outliers (-1 = outlier, 1 = inlier)
-        predictions = self.iso_forest.predict(X_benign_reduced)
-        outlier_scores = self.iso_forest.decision_function(X_benign_reduced)
+        # OTTIMIZZAZIONE: Process in batches
+        n_samples = len(X_benign_reduced)
+        predictions = []
+        outlier_scores_list = []
+        
+        for start_idx in range(0, n_samples, batch_size):
+            end_idx = min(start_idx + batch_size, n_samples)
+            batch = X_benign_reduced[start_idx:end_idx]
+            
+            # Predict outliers (-1 = outlier, 1 = inlier)
+            batch_preds = self.iso_forest.predict(batch)
+            batch_scores = self.iso_forest.decision_function(batch)
+            
+            predictions.extend(batch_preds)
+            outlier_scores_list.extend(batch_scores)
+        
+        predictions = np.array(predictions)
+        outlier_scores = np.array(outlier_scores_list)
         
         # Create full mask
         suspected_poison_mask_benign = predictions == -1
