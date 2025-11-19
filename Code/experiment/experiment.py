@@ -87,7 +87,7 @@ def experiment_backdoor_attack(config, model_clean, X_train, y_train, X_test, y_
         
         # 2. Seleziona features con SHAP
         print("\n[*] Step 1: Feature selection with SHAP")
-        backdoor.select_trigger_features_shap(model_clean, X_train, y_train, device)
+        backdoor.select_trigger_features_shap_efficient(model_clean, X_train, y_train, device)
         
         # 3. Seleziona valori trigger
         print("\n[*] Step 2: Trigger value selection")
@@ -192,13 +192,20 @@ def experiment_poisoned_model(config, X_train, y_train, X_test, y_test, device, 
     
     return model, metrics, poisoning_info
 
+
 def experiment_isolation_forest_defense(config, X_train, y_train, X_test, y_test, 
-                                        device, poison_indices, force_recreate=False):
+                                        device, poison_indices, force_recreate=False,
+                                        low_memory_mode=True):
     """
     Esperimento: Defense con Isolation Forest (baseline dal paper)
+    
+    Args:
+        low_memory_mode: Se True, usa ottimizzazioni per Mac/sistemi con poca RAM
     """
     print("\n" + "=" * 80)
     print("ESPERIMENTO: ISOLATION FOREST DEFENSE (Paper Baseline)")
+    if low_memory_mode:
+        print("  [LOW MEMORY MODE ENABLED]")
     print("=" * 80)
     
     model_path = 'model_isolation_forest_defended.pth'
@@ -233,9 +240,24 @@ def experiment_isolation_forest_defense(config, X_train, y_train, X_test, y_test
         print(f"\n[*] Feature selection method: Mutual Information")
         print(f"   (usa use_shap=True per SHAP, ma è più lento)")
         
-        defender.fit_detector(X_train, y_train, use_shap=False)
+        if low_memory_mode:
+            # OTTIMIZZAZIONI PER MAC
+            max_samples_mi = 30000  # Ridotto da 50k
+            max_samples_forest = 50000  # Ridotto da 100k
+            print(f"  [Low Memory] MI samples: {max_samples_mi:,}")
+            print(f"  [Low Memory] Forest samples: {max_samples_forest:,}")
+        else:
+            max_samples_mi = 50000
+            max_samples_forest = 100000
         
-        # 3. Clean dataset
+        defender.fit_detector(
+            X_train, y_train, 
+            use_shap=False,
+            max_samples_mi=max_samples_mi,
+            max_samples_forest=max_samples_forest
+        )
+        
+        # 3. Clean dataset (con batch processing)
         X_train_clean, y_train_clean, defense_metrics = defender.clean_dataset(
             X_train, y_train, poison_indices=poison_indices
         )
@@ -243,7 +265,12 @@ def experiment_isolation_forest_defense(config, X_train, y_train, X_test, y_test
         # 4. Visualizza risultati detection
         benign_mask = y_train == 0
         benign_indices = np.where(benign_mask)[0]
-        _, outlier_scores = defender.detect_outliers(X_train, y_train)
+        
+        # Batch processing anche per outlier scores
+        _, outlier_scores = defender.detect_outliers(
+            X_train, y_train, 
+            batch_size=10000 if low_memory_mode else 50000
+        )
         
         plot_isolation_forest_results(
             outlier_scores, 

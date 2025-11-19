@@ -43,8 +43,8 @@ class ExperimentConfig:
         self.WEIGHT_DECAY = 1e-5
         
         # Parametri attacco BACKDOOR (come nel paper)
-        self.POISON_RATE = 0.01  # 1% come nel paper
-        self.TRIGGER_SIZE = 8    # 8 features come nel paper per EmberNN
+        self.POISON_RATE = 0.03  # 3% come nel paper
+        self.TRIGGER_SIZE = 18    # 16- 32 -128 features come nel paper per EmberNN
         self.ATTACK_TYPE = 'Clean-Label Backdoor (SHAP-guided)'
         
         # Parametri DETECTION (Weight Pruning)
@@ -58,7 +58,7 @@ class ExperimentConfig:
         
         # Feature selection
         self.CORR_THRESHOLD = 0.98
-        self.MI_TOP_K = 17  # PIÙ FEATURES per avere spazio per SHAP
+        self.MI_TOP_K = None  # PIÙ FEATURES per avere spazio per SHAP
         
         # Percorsi modelli
         self.MODEL_PATHS = {
@@ -99,16 +99,23 @@ class ExperimentConfig:
 
 def setup_device():
     """Configura e restituisce il device PyTorch appropriato"""
+    low_memory_mode = False
+    
     if torch.backends.mps.is_available():
         device = torch.device("mps")
         print("  DEVICE: Using Apple Silicon GPU (MPS)")
+        low_memory_mode = True  # Attiva automaticamente su Mac
+        print("  [LOW MEMORY MODE: Enabled for Apple Silicon]")
     elif torch.cuda.is_available():
         device = torch.device("cuda")
         print("  DEVICE: Using CUDA GPU")
     else:
         device = torch.device("cpu")
         print("  DEVICE: Using CPU")
-    return device
+        low_memory_mode = True  # Anche CPU beneficia di low memory
+        print("  [LOW MEMORY MODE: Enabled for CPU]")
+    
+    return device, low_memory_mode
 
 
 def main():

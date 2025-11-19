@@ -15,29 +15,69 @@ class ExplanationGuidedBackdoor:
         self.X_shap_sample = None
         self.shap_sample_indices = None
     
-    def select_trigger_features_shap(self, model, X_train, y_train, device):
-        print(f"\n=== Trigger Feature Selection (SHAP-based) ===")
+    def select_trigger_features_shap_efficient(self, model, X_train, y_train, device,
+                                               sample_size=100, background_size=50):
+        """
+        VERSIONE OTTIMIZZATA: Usa DeepExplainer o subset più piccoli
         
-        def model_predict(x):
-            model.eval()
-            with torch.no_grad():
-                x_tensor = torch.FloatTensor(x).to(device)
-                logits = model(x_tensor)
-                return torch.sigmoid(logits).cpu().numpy()
+        Args:
+            sample_size: Samples da spiegare (default: 100 invece di 1000)
+            background_size: Background per explainer (default: 50 invece di 100)
+        """
+        print(f"\n=== Trigger Feature Selection (SHAP-based - EFFICIENT) ===")
+        print(f"   Using REDUCED sample size for memory efficiency")
+        print(f"   Samples to explain: {sample_size}")
+        print(f"   Background samples: {background_size}")
         
-        # Sample
-        sample_size = min(1000, len(X_train))
+        # Sample MOLTO più piccolo
+        sample_size = min(sample_size, len(X_train))
         sample_indices = np.random.choice(len(X_train), sample_size, replace=False)
         X_sample = X_train[sample_indices]
         
-        # SALVA questi dati per CountAbsSHAP
+        # Salva per CountAbsSHAP
         self.X_shap_sample = X_sample
         self.shap_sample_indices = sample_indices
         
-        # SHAP explainer
-        explainer = shap.KernelExplainer(model_predict, X_sample[:100])
-        shap_values = explainer.shap_values(X_sample)
+        # Background ancora più piccolo
+        background_indices = np.random.choice(sample_size, background_size, replace=False)
+        X_background = X_sample[background_indices]
         
+        print(f"\n[*] Computing SHAP values...")
+        print(f"    This will take ~5-10 minutes with {X_train.shape[1]} features")
+        
+        # OPZIONE 1: DeepExplainer (più efficiente per NN)
+        try:
+            shap_values = self._compute_shap_deep(
+                model, X_sample, X_background, device
+            )
+            print(f"    Used DeepExplainer (efficient)")
+        
+        except Exception as e:
+            print(f"    DeepExplainer failed: {e}")
+            print(f"    Falling back to GradientExplainer...")
+            
+            # OPZIONE 2: GradientExplainer (più robusto)
+            try:
+                shap_values = self._compute_shap_gradient(
+                    model, X_sample, X_background, device
+                )
+                print(f"   Used GradientExplainer")
+            
+            except Exception as e2:
+                print(f"    GradientExplainer also failed: {e2}")
+                print(f"    Falling back to KernelExplainer with tiny sample...")
+                
+                # OPZIONE 3: KernelExplainer ultra-ridotto
+                tiny_sample = X_sample[:20]
+                shap_values = self._compute_shap_kernel_tiny(
+                    model, tiny_sample, X_background[:10], device, sample_indices
+                )
+                print(f"    Used TINY KernelExplainer (may be less accurate)")
+                # Aggiorna anche X_shap_sample per coerenza
+                X_sample = tiny_sample
+                self.X_shap_sample = X_sample
+        
+        # Salva
         self.shap_values = shap_values
         
         # Feature selection
@@ -45,12 +85,69 @@ class ExplanationGuidedBackdoor:
         top_indices = np.argsort(feature_importance)[::-1][:self.n_trigger_features]
         self.selected_features = top_indices
         
-        print(f"Selected {len(top_indices)} features for trigger")
-        print(f"  Feature indices: {top_indices}")
-        print(f"  Importance range: [{feature_importance[top_indices[-1]]:.6f}, {feature_importance[top_indices[0]]:.6f}]")
+        print(f"\n Selected {len(top_indices)} features for trigger")
+        print(f"  Feature indices: {top_indices[:10]}...")
+        print(f"  Importance range: [{feature_importance[top_indices[-1]]:.6f}, "
+              f"{feature_importance[top_indices[0]]:.6f}]")
         
         return top_indices
     
+    def _compute_shap_deep(self, model, X_sample, X_background, device):
+        """Usa DeepExplainer (più veloce per NN)"""
+        # Converti a tensori
+        X_sample_tensor = torch.FloatTensor(X_sample).to(device)
+        X_background_tensor = torch.FloatTensor(X_background).to(device)
+        
+        # DeepExplainer
+        explainer = shap.DeepExplainer(model, X_background_tensor)
+        shap_values = explainer.shap_values(X_sample_tensor)
+        
+        # Converti output
+        if isinstance(shap_values, list):
+            shap_values = shap_values[0]
+        
+        if torch.is_tensor(shap_values):
+            shap_values = shap_values.cpu().numpy()
+        
+        return shap_values
+    
+    def _compute_shap_gradient(self, model, X_sample, X_background, device):
+        """Usa GradientExplainer"""
+        # Converti a tensori
+        X_sample_tensor = torch.FloatTensor(X_sample).to(device)
+        X_background_tensor = torch.FloatTensor(X_background).to(device)
+        
+        # GradientExplainer
+        explainer = shap.GradientExplainer(model, X_background_tensor)
+        shap_values = explainer.shap_values(X_sample_tensor)
+        
+        # Converti output
+        if isinstance(shap_values, list):
+            shap_values = shap_values[0]
+        
+        if torch.is_tensor(shap_values):
+            shap_values = shap_values.cpu().numpy()
+        
+        return shap_values
+    
+    def _compute_shap_kernel_tiny(self, model, X_sample, X_background, device, sample_indices):
+        """Fallback: KernelExplainer ultra-ridotto"""
+        def model_predict(x):
+            model.eval()
+            with torch.no_grad():
+                x_tensor = torch.FloatTensor(x).to(device)
+                logits = model(x_tensor)
+                return torch.sigmoid(logits).cpu().numpy()
+        
+        # KernelExplainer con samples MOLTO ridotti
+        explainer = shap.KernelExplainer(model_predict, X_background)
+        shap_values = explainer.shap_values(X_sample)
+        
+        # FIX: Aggiorna sample_indices per riflettere il sample ridotto
+        self.shap_sample_indices = sample_indices[:len(X_sample)]
+        
+        return shap_values
+
     def select_trigger_values_countabsshap(self, X_train, y_train, selected_features):
         """
         VALUE SELECTION: CountAbsSHAP (VERA implementazione dal paper)
@@ -67,15 +164,23 @@ class ExplanationGuidedBackdoor:
         """
         print(f"\n=== Trigger Value Selection (CountAbsSHAP) ===")
         
+        if torch.is_tensor(self.shap_values):
+            self.shap_values = self.shap_values.detach().cpu().numpy()
+
+        if torch.is_tensor(self.X_shap_sample):
+            self.X_shap_sample = self.X_shap_sample.detach().cpu().numpy()
+
         if self.shap_values is None:
             raise ValueError("Must call select_trigger_features_shap first!")
         
-        # Benign mask
+        # Benign mask per tutto il training set
         benign_mask = y_train == 0
         X_benign = X_train[benign_mask]
         
-        # Per SHAP values: usa solo benign samples dal subset SHAP
-        benign_shap_mask = y_train[self.shap_sample_indices] == 0
+        # Per SHAP values: crea mask usando le labels del SAMPLE (non del training set completo)
+        # FIX: y_train[self.shap_sample_indices] da gli indici dei sample usati per SHAP
+        y_sample = y_train[self.shap_sample_indices]
+        benign_shap_mask = y_sample == 0
         X_shap_benign = self.X_shap_sample[benign_shap_mask]
         shap_benign = self.shap_values[benign_shap_mask]
         

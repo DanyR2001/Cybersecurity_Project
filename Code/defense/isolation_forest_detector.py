@@ -33,10 +33,15 @@ class IsolationForestDefender:
         self.top_features = None
         self.iso_forest = None
     
-    def select_top_features_mi(self, X_train, y_train, verbose=True):
+    def select_top_features_mi(self, X_train, y_train, verbose=True, max_samples=50000):
         """
         Seleziona top-k features usando Mutual Information
         (alternativa a SHAP feature importance)
+        
+        OTTIMIZZATO: Usa subset per ridurre memoria
+        
+        Args:
+            max_samples: massimo numero di campioni da usare (default: 50000)
         
         Returns:
             top_feature_indices: array of top feature indices
@@ -44,12 +49,23 @@ class IsolationForestDefender:
         print(f"\n=== Feature Selection (Mutual Information) ===")
         print(f"Computing MI for {X_train.shape[1]} features...")
         
+        # RIDUZIONE MEMORIA: Usa subset
+        n_samples = min(max_samples, len(X_train))
+        if n_samples < len(X_train):
+            print(f"  [Memory optimization] Using {n_samples:,} / {len(X_train):,} samples")
+            sample_idx = np.random.choice(len(X_train), n_samples, replace=False)
+            X_sample = X_train[sample_idx]
+            y_sample = y_train[sample_idx]
+        else:
+            X_sample = X_train
+            y_sample = y_train
+        
         # Mutual Information
         mi_scores = mutual_info_classif(
-            X_train, y_train, 
+            X_sample, y_sample, 
             discrete_features=False,
             random_state=self.random_state,
-            n_jobs=-1
+            n_jobs=4  # LIMITATO a 4 core invece di -1
         )
         
         # Top-k features

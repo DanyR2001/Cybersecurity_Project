@@ -35,6 +35,7 @@ class WeightPruningDetector:
     def prune_smallest_weights(self, pruning_rate, target_layers=None):
         """
         Crea COPIA del modello con pruning_rate% dei pesi più piccoli azzerati
+        OTTIMIZZATO: usa sampling per calcolare threshold su grandi modelli
         
         Args:
             pruning_rate: percentuale di pesi da azzerare (0.0 - 1.0)
@@ -62,9 +63,29 @@ class WeightPruningDetector:
                     all_weights.append(param.abs().flatten())
                     weight_params.append((name, param))
         
-        # Concatena tutti i pesi e trova threshold
+        # FIX: Per modelli grandi, usa SAMPLING per calcolare threshold
         all_weights_cat = torch.cat(all_weights)
-        threshold = torch.quantile(all_weights_cat, pruning_rate)
+        n_weights = all_weights_cat.numel()
+        
+        # Se tensore troppo grande (>10M elementi), usa sampling
+        MAX_SAMPLE_SIZE = 10_000_000  # 10M elements max
+        
+        if n_weights > MAX_SAMPLE_SIZE:
+            # Sample random subset per calcolare threshold
+            sample_indices = torch.randperm(n_weights)[:MAX_SAMPLE_SIZE]
+            weights_sample = all_weights_cat[sample_indices]
+            threshold = torch.quantile(weights_sample, pruning_rate)
+            print(f"  [Memory optimization] Sampled {MAX_SAMPLE_SIZE:,} / {n_weights:,} weights for threshold")
+        else:
+            # FIX alternativo: usa numpy per grandi tensori
+            try:
+                threshold = torch.quantile(all_weights_cat, pruning_rate)
+            except RuntimeError:
+                # Fallback: converti a numpy
+                weights_np = all_weights_cat.cpu().numpy()
+                threshold_np = np.quantile(weights_np, pruning_rate)
+                threshold = torch.tensor(threshold_np, device=all_weights_cat.device)
+                print(f"  [Fallback] Used numpy for quantile calculation")
         
         # Applica pruning
         n_total = 0

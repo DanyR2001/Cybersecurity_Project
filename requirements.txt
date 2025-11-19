@@ -26,3 +26,4 @@ pillow>=8.3.0
 
 # EMbER specific if needed
 ember-features>=0.1.0
+sharp>=0.49.1
