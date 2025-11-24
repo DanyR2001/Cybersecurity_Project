@@ -47,6 +47,9 @@ def evaluate_backdoor_attack(model, X_test_clean, X_test_backdoored,
     X_malware_backdoored = X_test_backdoored[malware_indices]
     y_malware = y_test[malware_indices]
     
+    print(f"\n  Malware samples: {len(malware_indices)}")
+    print(f"    Original labels: {np.unique(y_malware, return_counts=True)}")
+
     backdoor_dataset = TensorDataset(
         torch.FloatTensor(X_malware_backdoored.copy()),
         torch.FloatTensor(y_malware.copy())

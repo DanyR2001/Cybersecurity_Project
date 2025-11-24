@@ -402,7 +402,7 @@ def experiment_pruning_defense(config, model_poisoned, X_test, y_test, device,
             pct_maintained.append(pct)
         
         # Trova punto ottimale
-        threshold_maintenance = 0.95
+        threshold_maintenance = 0.98
         optimal_idx = 0
         for i, (rate, pct) in enumerate(zip(pruning_rates, pct_maintained)):
             if pct >= threshold_maintenance:
@@ -411,6 +411,11 @@ def experiment_pruning_defense(config, model_poisoned, X_test, y_test, device,
                 break
         
         optimal_rate = pruning_rates[optimal_idx]
+
+        if optimal_rate < 0.1:
+            print(f"  ⚠️  Optimal rate too low ({optimal_rate:.1%}), forcing 0.3")
+            optimal_rate = 0.3
+
         print(f"\n[*] Pruning Rate Ottimale: {optimal_rate:.1%}")
         print(f"   Mantiene {pct_maintained[optimal_idx]:.2%} delle predizioni")
         

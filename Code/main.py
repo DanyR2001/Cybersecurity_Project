@@ -43,8 +43,8 @@ class ExperimentConfig:
         self.WEIGHT_DECAY = 1e-5
         
         # Parametri attacco BACKDOOR (come nel paper)
-        self.POISON_RATE = 0.03  # 3% come nel paper
-        self.TRIGGER_SIZE = 32    # 18 - 32 -128 features come nel paper per EmberNN
+        self.POISON_RATE = 0.01  # 1% come nel paper
+        self.TRIGGER_SIZE = 128    # 16 - 32 64 - 128 features come nel paper per EmberNN
         self.ATTACK_TYPE = 'Clean-Label Backdoor (SHAP-guided)'
         
         # Parametri DETECTION (Weight Pruning)
@@ -199,7 +199,7 @@ def main():
     # ========================================================================
     # ESPERIMENTO 4: Defense - Isolation Forest (Paper Baseline)
     # ========================================================================
-    response = input("\n Eseguire Isolation Forest defense (paper baseline)? (Y/n): ").strip().lower()
+    response = "y" #input("\n Eseguire Isolation Forest defense (paper baseline)? (Y/n): ").strip().lower()
     if response != 'n':
         print("\n" + "="*80)
         print("  PHASE 4: Defense - Isolation Forest (Paper Baseline)")
@@ -217,7 +217,7 @@ def main():
     # ========================================================================
     # ESPERIMENTO 5: Defense - Weight Pruning (Your Method)
     # ========================================================================
-    response = input("\n Eseguire Weight Pruning defense (your method)? (Y/n): ").strip().lower()
+    response = "y" #input("\n Eseguire Weight Pruning defense (your method)? (Y/n): ").strip().lower()
     if response != 'n':
         print("\n" + "="*80)
         print("  PHASE 5: Defense - Weight Pruning (Your Method)")
@@ -234,7 +234,7 @@ def main():
     # ========================================================================
     # ESPERIMENTO 6: Defense - Gaussian Noise (Your Method)
     # ========================================================================
-    response = input("\n Eseguire Gaussian Noise defense (your method)? (Y/n): ").strip().lower()
+    response = "y" #input("\n Eseguire Gaussian Noise defense (your method)? (Y/n): ").strip().lower()
     if response != 'n':
         print("\n" + "="*80)
         print("  PHASE 6: Defense - Gaussian Noise (Your Method)")

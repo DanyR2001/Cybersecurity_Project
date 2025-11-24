@@ -217,6 +217,14 @@ class WeightPruningDetector:
             X, batch_size=batch_size, pruning_rates=pruning_rates
         )
         
+        # DEBUG: Stampa distribuzione
+        print(f"\n🔍 Stability Score Distribution:")
+        print(f"  Min:  {np.min(stability_scores):.4f}")
+        print(f"  10%:  {np.percentile(stability_scores, 10):.4f}")
+        print(f"  50%:  {np.median(stability_scores):.4f}")
+        print(f"  90%:  {np.percentile(stability_scores, 90):.4f}")
+        print(f"  Max:  {np.max(stability_scores):.4f}")
+
         # Auto-calcola threshold (inverso rispetto a resilience!)
         # BASSA stability = sospetto avvelenato
         if threshold is None:

@@ -231,7 +231,7 @@ def tune_gaussian_noise(model_backdoor, X_test, y_test, device,
         print(f"\n   WARNING: No noise level meets min_acceptable_acc={min_acceptable_acc:.1%}")
         
         # Usa il minimo noise (meno distruttivo)
-        best_result = max(results, key=lambda r: r['accuracy'])
+        best_result = min(results, key=lambda r: r['accuracy'])
         best_std = best_result['noise_std']
         
         print(f"\n  FALLBACK: Using minimal noise std: {best_std:.4f}")
