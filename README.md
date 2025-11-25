@@ -285,90 +285,6 @@ Ours: Gaussian Noise           0.9854       82.1%        N/A
 
 ---
 
-## Experiment Workflows
-
-### Workflow 1: Reproduce Paper Results
-
-Compare your backdoor attack with Table 6 from the paper:
-
-```python
-# In main.py, set:
-config.TRIGGER_SIZE = 16  # or 32, 64, 128
-config.POISON_RATE = 0.01  # or 0.03
-
-# Run and compare ASR with paper
-python main.py
-```
-
-**Paper Results (LargeAbsSHAP × CountAbsSHAP):**
-- EmberNN, 16 features, 1% poison: ASR ≈ 78.96%
-- EmberNN, 32 features, 1% poison: ASR ≈ 86.77%
-- EmberNN, 128 features, 1% poison: ASR ≈ 99.25%
-
-### Workflow 2: Test Different Defenses
-
-```bash
-# Test only Isolation Forest
-python main.py
-# When prompted:
-#   IsoForest? Y
-#   Pruning? n
-#   Noise? n
-
-# Test only your defenses
-python main.py
-# When prompted:
-#   IsoForest? n
-#   Pruning? Y
-#   Noise? Y
-```
-
-### Workflow 3: Hyperparameter Tuning
-
-Modify `ExperimentConfig` to test different settings:
-
-```python
-# Test different trigger sizes
-for trigger_size in [8, 16, 32, 64, 128]:
-    config.TRIGGER_SIZE = trigger_size
-    # Run experiment
-    # Compare ASR
-
-# Test different poison rates
-for poison_rate in [0.01, 0.02, 0.03, 0.05]:
-    config.POISON_RATE = poison_rate
-    # Run experiment
-    # Compare detection accuracy
-```
-
-### Workflow 4: Custom Attack Creation
-
-Load dataset and create custom poisoning:
-
-```python
-from preprocessing.data_loader import load_and_prepare_data
-from attack.backdoor_attack import ExplanationGuidedBackdoor
-
-# Load data
-X_train, y_train, X_test, y_test = load_and_prepare_data(
-    "dataset/ember_dataset_2018_2"
-)
-
-# Create backdoor
-backdoor = ExplanationGuidedBackdoor(n_trigger_features=32)
-
-# Your custom trigger selection
-# backdoor.select_trigger_features_shap_efficient(...)
-# backdoor.select_trigger_values_countabsshap(...)
-
-# Create poisoned dataset
-X_poisoned, y_poisoned, poison_indices = backdoor.create_backdoor_dataset(
-    X_train, y_train, poison_rate=0.02
-)
-```
-
----
-
 ## Advanced Features
 
 ### Feature Selection
@@ -574,8 +490,6 @@ config.DETECTION_PRUNING_RATES = [0.0, 0.2, 0.5, 0.8]  # Instead of 13 levels
 - SHAP: SHapley Additive exPlanations for model interpretability
 
 ---
-
-## Contributing & Extensions
 
 ## License & Citation
 
