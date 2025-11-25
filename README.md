@@ -65,7 +65,7 @@ This project implements a comprehensive backdoor attack and defense system for m
 │           ├── triggersize64
 │           └── triggersize128
 │
-├── Presentation/                       # Powerpoin presentation of the project
+├── Presentation/                       # Powerpoint presentation of the project
 │     
 ├── setup.sh                            # Complete setup script
 ├── activate_ember.sh                   # Environment activation
