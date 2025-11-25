@@ -36,6 +36,7 @@ This project implements a comprehensive backdoor attack and defense system for m
 │   ├── utils/
 │   │   ├── metrics.py                  # Performance metrics
 │   │   ├── visualization.py            # Plotting functions
+│   │   ├── result_analysis.py          # Comparison plotting functions of all the tests
 │   │   ├── backdoor_metrics.py         # Attack-specific metrics
 │   │   └── io_utils.py                 # I/O utilities
 │   └── experiment/
@@ -53,6 +54,7 @@ This project implements a comprehensive backdoor attack and defense system for m
 ├── Documentation/                      # Latex file and pdf of the documentation
 │   
 ├── Result/                             # All the result of different run
+│   ├── analysis_plots/                 # All comparison plots of differte test 
 │   └── ember2018/                      # Dataset name
 │       ├── poison rate 1%              # Poison percentage of the attack
 │       │   ├── triggersize16           # Different triggersize
