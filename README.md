@@ -48,6 +48,25 @@ This project implements a comprehensive backdoor attack and defense system for m
 │   ├── ember/                          # Official EMBER repo
 │   └── MalwareBackdoors/               # Poisoning reference code
 │
+├── Bibliography/                       # All the paper used for the project
+│     
+├── Documentation/                      # Latex file and pdf of the documentation
+│   
+├── Result/                             # All the result of different run
+│   └── ember2018/                      # Dataset name
+│       ├── poison rate 1%              # Poison percentage of the attack
+│       │   ├── triggersize16           # Different triggersize
+│       │   ├── triggersize32
+│       │   ├── triggersize64
+│       │   └── triggersize128
+│       └── poison rate 3%              # Poison percentage of the attack
+│           ├── triggersize16           # Different triggersize
+│           ├── triggersize32
+│           ├── triggersize64
+│           └── triggersize128
+│
+├── Presentation/                       # Powerpoin presentation of the project
+│     
 ├── setup.sh                            # Complete setup script
 ├── activate_ember.sh                   # Environment activation
 ├── requirements.txt                    # Python dependencies
