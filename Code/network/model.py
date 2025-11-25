@@ -57,7 +57,8 @@ class EmberMalwareNet(nn.Module):
         x = self.dropout3(x)
 
         logits = self.output(x)  # shape [batch, 1]
-        return torch.sigmoid(logits).squeeze(1)
+        return logits.squeeze(1) 
+
 
 # Funzione per training
 def train_model(model, train_loader, criterion, optimizer, device):

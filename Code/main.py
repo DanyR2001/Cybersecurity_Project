@@ -44,7 +44,7 @@ class ExperimentConfig:
         
         # Parametri attacco BACKDOOR (come nel paper)
         self.POISON_RATE = 0.03  # 1% come nel paper
-        self.TRIGGER_SIZE = 16    # 16 - 32 64 - 128 features come nel paper per EmberNN
+        self.TRIGGER_SIZE = 64    # 16 - 32 - 64 - 128 features come nel paper per EmberNN
         self.ATTACK_TYPE = 'Clean-Label Backdoor (SHAP-guided)'
         
         # Parametri DETECTION (Weight Pruning)
