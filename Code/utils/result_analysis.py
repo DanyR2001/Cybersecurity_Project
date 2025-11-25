@@ -126,17 +126,49 @@ class FinalAnalyzer:
         plt.close()
 
         # 2. Stealthiness
-        plt.figure()
-        for pr in self.df['poison_rate_pct'].unique():
-            sub = self.df[self.df['poison_rate_pct'] == pr]
-            plt.plot(sub['trigger_size'], sub['acc_drop_pct'], 'o-', label=f'{pr}%', linewidth=3, markersize=10)
-        plt.axhline(0, color='black', linewidth=2)
-        plt.xlabel('Trigger Size')
-        plt.ylabel('Accuracy Drop (Clean → Backdoored) %')
-        plt.title('Attack Stealthiness\n(More negative = more detectable)', fontweight='bold')
-        plt.legend(title='Poison Rate')
-        plt.grid(True, alpha=0.3)
-        plt.savefig(f"{save_dir}/2_stealthiness.png", dpi=300, bbox_inches='tight')
+        plt.figure(figsize=(12, 8))
+        
+        # COLORI FISSI BELLISSIMI (1% = blu scuro, 3% = rosso/arancione acceso)
+        color_map = {1.0: '#1f77b4',   # blu profondo (classico matplotlib)
+                     3.0: '#d62728'}   # rosso acceso (perfetto per 3%)
+
+        for pr in sorted(self.df['poison_rate_pct'].unique()):
+            sub = self.df[self.df['poison_rate_pct'] == pr].sort_values('trigger_size')
+            color = color_map.get(pr, '#7f7f7f')  # fallback grigio se ce ne sono altri
+
+            plt.plot(sub['trigger_size'], sub['acc_drop_pct'], 
+                     'o-', color=color, linewidth=4.5, markersize=14, 
+                     markerfacecolor=color, markeredgecolor='white', markeredgewidth=2.5,
+                     label=f'Poison Rate {pr:.0f}%', alpha=0.95)
+
+            # ANNOTAZIONI BELLE E PROFESSIONALI
+            for _, row in sub.iterrows():
+                txt = f"{row['acc_drop_pct']:+.2f}%"
+                plt.annotate(txt,
+                             xy=(row['trigger_size'], row['acc_drop_pct']),
+                             xytext=(0, 15), textcoords='offset points',
+                             ha='center', va='bottom',
+                             fontsize=13, fontweight='bold', color=color,
+                             bbox=dict(facecolor='white', edgecolor=color, 
+                                      boxstyle='round,pad=0.5', linewidth=2.5, alpha=0.98),
+                             arrowprops=dict(arrowstyle='-', color=color, lw=2.2, alpha=0.7))
+
+        # Linea zero bella spessa
+        plt.axhline(0, color='black', linewidth=3, alpha=0.9, zorder=1)
+
+        plt.xlabel('Trigger Size', fontsize=15, fontweight='bold', labelpad=10)
+        plt.ylabel('Accuracy Drop (Clean → Backdoored) (%)', fontsize=15, fontweight='bold', labelpad=10)
+        plt.title('Backdoor Attack Stealthiness\n(Positive = accuracy gain → ultra stealthy attack!)', 
+                  fontsize=18, fontweight='bold', pad=30)
+
+        plt.legend(title='Poison Rate', fontsize=13, title_fontsize=14, 
+                   loc='upper left', frameon=True, fancybox=True, shadow=True)
+
+        plt.grid(True, alpha=0.4, linestyle='-', linewidth=1.2)
+        plt.tight_layout()
+        
+        plt.savefig(f"{save_dir}/2_stealthiness.png", dpi=400, bbox_inches='tight', 
+                    facecolor='white', edgecolor='none')
         plt.close()
 
         # 3. Defense Recovery (tutte e 3!)
