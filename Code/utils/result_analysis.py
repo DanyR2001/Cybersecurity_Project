@@ -103,7 +103,7 @@ class FinalAnalyzer:
         self.df = pd.DataFrame(rows).sort_values(['poison_rate_pct', 'trigger_size']).reset_index(drop=True)
         return self.df
 
-    def save_summary_csv(self, path="analysis_plots/summary_table.csv"):
+    def save_summary_csv(self, path="Results/analysis_plots/summary_table.csv"):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         # Arrotonda per leggibilità
         df_display = self.df.copy()
@@ -112,7 +112,7 @@ class FinalAnalyzer:
         df_display.to_csv(path, index=False)
         print(f"Summary table salvata: {path}")
 
-    def generate_plots(self, save_dir="analysis_plots"):
+    def generate_plots(self, save_dir="Results/analysis_plots"):
         os.makedirs(save_dir, exist_ok=True)
 
         # 1. Real Danger Heatmap
@@ -128,7 +128,6 @@ class FinalAnalyzer:
         # 2. Stealthiness
         plt.figure(figsize=(12, 8))
         
-        # COLORI FISSI BELLISSIMI (1% = blu scuro, 3% = rosso/arancione acceso)
         color_map = {1.0: '#1f77b4',   # blu profondo (classico matplotlib)
                      3.0: '#d62728'}   # rosso acceso (perfetto per 3%)
 
@@ -141,7 +140,7 @@ class FinalAnalyzer:
                      markerfacecolor=color, markeredgecolor='white', markeredgewidth=2.5,
                      label=f'Poison Rate {pr:.0f}%', alpha=0.95)
 
-            # ANNOTAZIONI BELLE E PROFESSIONALI
+            # ANNOTAZIONI
             for _, row in sub.iterrows():
                 txt = f"{row['acc_drop_pct']:+.2f}%"
                 plt.annotate(txt,
