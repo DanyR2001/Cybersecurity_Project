@@ -47,7 +47,7 @@ def check_jsonl_file(filepath, max_lines=10):
                                        'imports', 'exports', 'section', 'datadirectories']
                         missing = [k for k in expected_keys if k not in data]
                         if missing:
-                            print(f"  ⚠️  Missing keys: {missing}")
+                            print(f"    Missing keys: {missing}")
                         
                         # Controlla il campo 'entry' se esiste in 'general'
                         if 'general' in data:

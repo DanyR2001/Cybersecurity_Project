@@ -413,7 +413,7 @@ def experiment_pruning_defense(config, model_poisoned, X_test, y_test, device,
         optimal_rate = pruning_rates[optimal_idx]
 
         if optimal_rate < 0.1:
-            print(f"  ⚠️  Optimal rate too low ({optimal_rate:.1%}), forcing 0.3")
+            print(f"    Optimal rate too low ({optimal_rate:.1%}), forcing 0.3")
             optimal_rate = 0.3
 
         print(f"\n[*] Pruning Rate Ottimale: {optimal_rate:.1%}")

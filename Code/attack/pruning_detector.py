@@ -218,7 +218,7 @@ class WeightPruningDetector:
         )
         
         # DEBUG: Stampa distribuzione
-        print(f"\n🔍 Stability Score Distribution:")
+        print(f"\n Stability Score Distribution:")
         print(f"  Min:  {np.min(stability_scores):.4f}")
         print(f"  10%:  {np.percentile(stability_scores, 10):.4f}")
         print(f"  50%:  {np.median(stability_scores):.4f}")
