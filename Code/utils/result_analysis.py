@@ -63,15 +63,23 @@ class FinalAnalyzer:
                 row['clean_acc'] = data['clean']['test']['accuracy']
                 row['clean_f1'] = data['clean']['test']['f1_score']
 
-            # Backdoored model
             if 'backdoored' in data:
                 bd = data['backdoored']
-                if 'test' in bd:
-                    row['backdoor_acc'] = bd['test']['accuracy']
-                    row['backdoor_f1'] = bd['test']['f1_score']
+                
+                # IMPORTANTE: usa attack_metrics per le metriche corrette
                 if 'attack_metrics' in bd:
-                    row['asr'] = bd['attack_metrics']['attack_success_rate']
-                    row['acc_backdoored_malware'] = bd['attack_metrics']['acc_backdoored']
+                    # Stealthiness: accuracy del modello backdoor su clean test set
+                    row['backdoor_acc'] = bd['attack_metrics']['acc_clean']  
+                    
+                    # Attack effectiveness: accuracy su malware con trigger inserito
+                    row['acc_backdoored_malware'] = bd['attack_metrics']['acc_backdoored'] 
+                    
+                    # Attack success rate
+                    row['asr'] = bd['attack_metrics']['attack_success_rate']  
+                
+                # F1 score (puoi usarlo dal test normale)
+                if 'test' in bd:
+                    row['backdoor_f1'] = bd['test']['f1_score']  
 
             # Difese
             defenses = ['isolation_forest', 'pruned', 'noisy']
