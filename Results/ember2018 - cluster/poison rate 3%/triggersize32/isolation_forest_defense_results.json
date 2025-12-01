@@ -1,0 +1,15 @@
+{
+  "n_removed": 9135,
+  "n_remaining": 590865,
+  "removal_rate": 0.015225,
+  "ground_truth": {
+    "n_poison": 9000,
+    "true_positives": 265,
+    "false_positives": 8870,
+    "true_negatives": 582130,
+    "false_negatives": 8735,
+    "precision": 0.029009304871373837,
+    "recall": 0.029444444444444443,
+    "f1_score": 0.029225255031706643
+  }
+}
