@@ -1,0 +1,30 @@
+{
+  "data_dir": "dataset/ember2018",
+  "epochs": 10,
+  "batch_size": 256,
+  "learning_rate": 0.001,
+  "dropout_rate": 0.5,
+  "weight_decay": 1e-05,
+  "poison_rate": 0.01,
+  "trigger_size": 48,
+  "attack_type": "Clean-Label Backdoor (SHAP-guided)",
+  "detection_pruning_rates": [
+    0.0,
+    0.05,
+    0.1,
+    0.15,
+    0.2,
+    0.25,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9
+  ],
+  "defense_pruning_rate": 0.8,
+  "noise_std": 0.03,
+  "corr_threshold": 0.98,
+  "mi_top_k": null
+}
