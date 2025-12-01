@@ -26,7 +26,7 @@ plt.rcParams.update({
 })
 
 class FinalAnalyzer:
-    def __init__(self, base_dir="Results/ember2018"):
+    def __init__(self, base_dir="Results/ember2018 - mac"):
         self.base_dir = Path(base_dir)
         self.results = {}
         self.df = None
@@ -86,16 +86,16 @@ class FinalAnalyzer:
                 row['acc_drop_pct'] = row['acc_drop'] * 100
 
                 drop = row['acc_drop']
-                if drop > 0:  # solo se c'è degrado
-                    for def_name in defenses:
-                        acc_key = f'{def_name}_acc'
-                        if acc_key in row and pd.notna(row[acc_key]):
-                            recovered = row[acc_key] - row['backdoor_acc']
+                # Calcola recovery anche con drop negativo
+                for def_name in defenses:
+                    acc_key = f'{def_name}_acc'
+                    if acc_key in row and pd.notna(row[acc_key]):
+                        recovered = row[acc_key] - row['backdoor_acc']
+                        if abs(drop) > 1e-6:  # evita divisione per zero
                             row[f'{def_name}_recovery_pct'] = (recovered / drop) * 100
                         else:
                             row[f'{def_name}_recovery_pct'] = np.nan
-                else:
-                    for def_name in defenses:
+                    else:
                         row[f'{def_name}_recovery_pct'] = np.nan
 
             rows.append(row)
@@ -212,10 +212,414 @@ class FinalAnalyzer:
 
         print(f"Tutti i grafici salvati in: {save_dir}/")
 
+    def export_comprehensive_csv(self, path="Results/analysis_plots/comprehensive_results.csv"):
+        """
+        Esporta CSV completo con TUTTE le metriche per analisi approfondita
+        Include: metriche clean, backdoor, attack, e tutte e 3 le difese
+        """
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        
+        rows = []
+        for (pr, ts), data in self.results.items():
+            row = {
+                # === CONFIGURATION ===
+                'poison_rate': pr,
+                'poison_rate_pct': pr * 100,
+                'trigger_size': ts,
+                'config_id': f"P{int(pr*100)}_T{ts}",
+            }
+            
+            # === CLEAN MODEL (BASELINE) ===
+            if 'clean' in data and 'test' in data['clean']:
+                clean = data['clean']['test']
+                row.update({
+                    'clean_accuracy': clean.get('accuracy', np.nan),
+                    'clean_precision': clean.get('precision', np.nan),
+                    'clean_recall': clean.get('recall', np.nan),
+                    'clean_f1': clean.get('f1_score', np.nan),
+                    'clean_auc': clean.get('auc_roc', np.nan),
+                    'clean_specificity': clean.get('specificity', np.nan),
+                    'clean_tp': clean.get('true_positive', np.nan),
+                    'clean_fp': clean.get('false_positive', np.nan),
+                    'clean_tn': clean.get('true_negative', np.nan),
+                    'clean_fn': clean.get('false_negative', np.nan),
+                })
+            
+            # === BACKDOORED MODEL ===
+            if 'backdoored' in data:
+                bd = data['backdoored']
+                
+                # Test metrics
+                if 'test' in bd:
+                    bd_test = bd['test']
+                    row.update({
+                        'backdoor_accuracy': bd_test.get('accuracy', np.nan),
+                        'backdoor_precision': bd_test.get('precision', np.nan),
+                        'backdoor_recall': bd_test.get('recall', np.nan),
+                        'backdoor_f1': bd_test.get('f1_score', np.nan),
+                        'backdoor_auc': bd_test.get('auc_roc', np.nan),
+                        'backdoor_specificity': bd_test.get('specificity', np.nan),
+                        'backdoor_tp': bd_test.get('true_positive', np.nan),
+                        'backdoor_fp': bd_test.get('false_positive', np.nan),
+                        'backdoor_tn': bd_test.get('true_negative', np.nan),
+                        'backdoor_fn': bd_test.get('false_negative', np.nan),
+                    })
+                
+                # Attack metrics
+                if 'attack_metrics' in bd:
+                    attack = bd['attack_metrics']
+                    row.update({
+                        'asr': attack.get('attack_success_rate', np.nan),
+                        'acc_clean_test': attack.get('acc_clean', np.nan),
+                        'acc_backdoored_malware': attack.get('acc_backdoored', np.nan),
+                        'backdoored_samples': attack.get('backdoored_samples', np.nan),
+                    })
+            
+            # === ISOLATION FOREST DEFENSE ===
+            if 'isolation_forest' in data:
+                iso = data['isolation_forest']
+                
+                # Test metrics
+                if 'test' in iso:
+                    iso_test = iso['test']
+                    row.update({
+                        'iso_accuracy': iso_test.get('accuracy', np.nan),
+                        'iso_precision': iso_test.get('precision', np.nan),
+                        'iso_recall': iso_test.get('recall', np.nan),
+                        'iso_f1': iso_test.get('f1_score', np.nan),
+                        'iso_auc': iso_test.get('auc_roc', np.nan),
+                        'iso_specificity': iso_test.get('specificity', np.nan),
+                    })
+                
+                # Defense metrics
+                if 'defense_metrics' in iso:
+                    def_metrics = iso['defense_metrics']
+                    row.update({
+                        'iso_n_removed': def_metrics.get('n_removed', np.nan),
+                        'iso_n_remaining': def_metrics.get('n_remaining', np.nan),
+                        'iso_removal_rate': def_metrics.get('removal_rate', np.nan),
+                    })
+                    
+                    # Detection metrics (se disponibili)
+                    if 'ground_truth' in def_metrics:
+                        gt = def_metrics['ground_truth']
+                        row.update({
+                            'iso_det_precision': gt.get('precision', np.nan),
+                            'iso_det_recall': gt.get('recall', np.nan),
+                            'iso_det_f1': gt.get('f1_score', np.nan),
+                            'iso_det_tp': gt.get('true_positives', np.nan),
+                            'iso_det_fp': gt.get('false_positives', np.nan),
+                            'iso_det_tn': gt.get('true_negatives', np.nan),
+                            'iso_det_fn': gt.get('false_negatives', np.nan),
+                        })
+            
+            # === WEIGHT PRUNING DEFENSE ===
+            if 'pruned' in data:
+                pruned = data['pruned']
+                
+                # Test metrics
+                if 'test' in pruned:
+                    pruned_test = pruned['test']
+                    row.update({
+                        'pruned_accuracy': pruned_test.get('accuracy', np.nan),
+                        'pruned_precision': pruned_test.get('precision', np.nan),
+                        'pruned_recall': pruned_test.get('recall', np.nan),
+                        'pruned_f1': pruned_test.get('f1_score', np.nan),
+                        'pruned_auc': pruned_test.get('auc_roc', np.nan),
+                        'pruned_specificity': pruned_test.get('specificity', np.nan),
+                    })
+                
+                # Pruning stats
+                if 'pruning_stats' in pruned:
+                    stats = pruned['pruning_stats']
+                    row.update({
+                        'pruning_rate': stats.get('optimal_pruning_rate', np.nan),
+                        'pruned_weights': stats.get('n_pruned', np.nan),
+                        'remaining_weights': stats.get('n_remaining', np.nan),
+                        'total_weights': stats.get('n_total', np.nan),
+                    })
+            
+            # === GAUSSIAN NOISE DEFENSE ===
+            if 'noisy' in data:
+                noisy = data['noisy']
+                
+                # Test metrics
+                if 'test' in noisy:
+                    noisy_test = noisy['test']
+                    row.update({
+                        'noisy_accuracy': noisy_test.get('accuracy', np.nan),
+                        'noisy_precision': noisy_test.get('precision', np.nan),
+                        'noisy_recall': noisy_test.get('recall', np.nan),
+                        'noisy_f1': noisy_test.get('f1_score', np.nan),
+                        'noisy_auc': noisy_test.get('auc_roc', np.nan),
+                        'noisy_specificity': noisy_test.get('specificity', np.nan),
+                    })
+                
+                # Noise stats
+                if 'noise_stats' in noisy:
+                    stats = noisy['noise_stats']
+                    row.update({
+                        'noise_std': stats.get('noise_std', np.nan),
+                    })
+            
+            # === COMPUTED METRICS ===
+            # Attack impact
+            if 'clean_accuracy' in row and 'backdoor_accuracy' in row:
+                row['acc_drop'] = row['clean_accuracy'] - row['backdoor_accuracy']
+                row['acc_drop_pct'] = row['acc_drop'] * 100
+                
+                # Relative degradation
+                if row['clean_accuracy'] > 0:
+                    row['acc_drop_relative'] = (row['acc_drop'] / row['clean_accuracy']) * 100
+            
+            # Defense recoveries
+            drop = row.get('acc_drop', 0)
+            if abs(drop) > 1e-6:  # Evita divisione per zero
+                for defense, prefix in [('isolation_forest', 'iso'), 
+                                    ('pruned', 'pruned'), 
+                                    ('noisy', 'noisy')]:
+                    acc_key = f'{prefix}_accuracy'
+                    if acc_key in row and pd.notna(row[acc_key]):
+                        recovered = row[acc_key] - row.get('backdoor_accuracy', 0)
+                        row[f'{prefix}_recovery_pct'] = (recovered / drop) * 100
+                        row[f'{prefix}_recovery_abs'] = recovered
+            
+            # Attack effectiveness metrics
+            if 'asr' in row and pd.notna(row['asr']):
+                row['attack_success'] = row['asr'] > 0.5  # Boolean: successful attack
+                row['attack_stealthy'] = row.get('acc_drop_pct', 0) < 1.0  # Drop < 1%
+                row['attack_effective'] = row['attack_success'] and row['attack_stealthy']
+            
+            rows.append(row)
+        
+        # Crea DataFrame
+        df_comprehensive = pd.DataFrame(rows).sort_values(['poison_rate_pct', 'trigger_size']).reset_index(drop=True)
+        
+        # Arrotonda per leggibilità
+        numeric_cols = df_comprehensive.select_dtypes(include=[np.number]).columns
+        df_comprehensive[numeric_cols] = df_comprehensive[numeric_cols].round(6)
+        
+        # Salva
+        df_comprehensive.to_csv(path, index=False)
+        print(f"\n✓ Comprehensive CSV salvato: {path}")
+        print(f"  Righe: {len(df_comprehensive)}")
+        print(f"  Colonne: {len(df_comprehensive.columns)}")
+        print(f"\n  Colonne disponibili:")
+        
+        # Raggruppa colonne per categoria
+        categories = {
+            'Configuration': [c for c in df_comprehensive.columns if c in ['poison_rate', 'poison_rate_pct', 'trigger_size', 'config_id']],
+            'Clean Baseline': [c for c in df_comprehensive.columns if c.startswith('clean_')],
+            'Backdoor Attack': [c for c in df_comprehensive.columns if c.startswith('backdoor_') or c in ['asr', 'acc_clean_test', 'acc_backdoored_malware', 'backdoored_samples']],
+            'Attack Impact': [c for c in df_comprehensive.columns if 'drop' in c or c.startswith('attack_')],
+            'Isolation Forest': [c for c in df_comprehensive.columns if c.startswith('iso_')],
+            'Weight Pruning': [c for c in df_comprehensive.columns if c.startswith('pruned_') or c.startswith('pruning_')],
+            'Gaussian Noise': [c for c in df_comprehensive.columns if c.startswith('noisy_') or c.startswith('noise_')],
+            'Defense Recovery': [c for c in df_comprehensive.columns if 'recovery' in c],
+        }
+        
+        for cat, cols in categories.items():
+            if cols:
+                print(f"    {cat}: {len(cols)} columns")
+        
+        return df_comprehensive
+
+
+    def generate_comparison_table(self, path="Results/analysis_plots/defense_comparison_table.csv"):
+        """
+        Genera tabella di confronto sintetica tra le difese
+        Focus su: Recovery, Accuracy finale, Overhead
+        """
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        
+        summary_rows = []
+        
+        for (pr, ts), data in self.results.items():
+            config_id = f"P{int(pr*100)}%_T{ts}"
+            
+            # Baseline
+            clean_acc = data.get('clean', {}).get('test', {}).get('accuracy', np.nan)
+            backdoor_acc = data.get('backdoored', {}).get('test', {}).get('accuracy', np.nan)
+            asr = data.get('backdoored', {}).get('attack_metrics', {}).get('attack_success_rate', np.nan)
+            
+            # Difese
+            defenses = {
+                'Isolation Forest': 'isolation_forest',
+                'Weight Pruning': 'pruned',
+                'Gaussian Noise': 'noisy'
+            }
+            
+            for def_name, def_key in defenses.items():
+                if def_key not in data or 'test' not in data[def_key]:
+                    continue
+                
+                def_acc = data[def_key]['test'].get('accuracy', np.nan)
+                def_f1 = data[def_key]['test'].get('f1_score', np.nan)
+                
+                # Recovery
+                drop = clean_acc - backdoor_acc
+                recovery_pct = np.nan
+                if abs(drop) > 1e-6:
+                    recovered = def_acc - backdoor_acc
+                    recovery_pct = (recovered / drop) * 100
+                
+                row = {
+                    'Configuration': config_id,
+                    'Poison Rate': pr * 100,
+                    'Trigger Size': ts,
+                    'Defense': def_name,
+                    'Clean Accuracy': clean_acc,
+                    'Backdoor Accuracy': backdoor_acc,
+                    'ASR': asr,
+                    'Defense Accuracy': def_acc,
+                    'Defense F1': def_f1,
+                    'Accuracy Drop (%)': (clean_acc - backdoor_acc) * 100,
+                    'Recovery (%)': recovery_pct,
+                    'Final vs Clean Gap (%)': (clean_acc - def_acc) * 100,
+                }
+                
+                # Aggiungi metriche specifiche
+                if def_key == 'isolation_forest' and 'defense_metrics' in data[def_key]:
+                    dm = data[def_key]['defense_metrics']
+                    row['Samples Removed'] = dm.get('n_removed', np.nan)
+                    row['Detection Precision'] = dm.get('ground_truth', {}).get('precision', np.nan)
+                    row['Detection Recall'] = dm.get('ground_truth', {}).get('recall', np.nan)
+                
+                elif def_key == 'pruned' and 'pruning_stats' in data[def_key]:
+                    ps = data[def_key]['pruning_stats']
+                    row['Pruning Rate'] = ps.get('optimal_pruning_rate', np.nan)
+                    row['Weights Pruned'] = ps.get('n_pruned', np.nan)
+                
+                elif def_key == 'noisy' and 'noise_stats' in data[def_key]:
+                    ns = data[def_key]['noise_stats']
+                    row['Noise Std'] = ns.get('noise_std', np.nan)
+                
+                summary_rows.append(row)
+        
+        df_comparison = pd.DataFrame(summary_rows)
+        
+        # Arrotonda
+        numeric_cols = df_comparison.select_dtypes(include=[np.number]).columns
+        df_comparison[numeric_cols] = df_comparison[numeric_cols].round(4)
+        
+        # Ordina
+        df_comparison = df_comparison.sort_values(['Poison Rate', 'Trigger Size', 'Defense']).reset_index(drop=True)
+        
+        df_comparison.to_csv(path, index=False)
+        print(f"\n✓ Defense comparison table salvata: {path}")
+        print(f"  Righe: {len(df_comparison)}")
+        
+        return df_comparison
+
+
+    def generate_best_configs_report(self, path="Results/analysis_plots/best_configurations.csv"):
+        """
+        Identifica le configurazioni migliori per diverse metriche
+        """
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        
+        if self.df is None:
+            self.build_dataframe()
+        
+        reports = []
+        
+        # 1. Attacco più efficace (alto ASR, basso drop)
+        if 'asr' in self.df.columns and 'acc_drop_pct' in self.df.columns:
+            df_attack = self.df.dropna(subset=['asr', 'acc_drop_pct'])
+            if not df_attack.empty:
+                # Score: ASR alto, drop basso
+                df_attack['attack_score'] = df_attack['asr'] - abs(df_attack['acc_drop_pct']) / 100
+                best_attack = df_attack.loc[df_attack['attack_score'].idxmax()]
+                
+                reports.append({
+                    'Category': 'Most Effective Attack',
+                    'Poison Rate (%)': best_attack['poison_rate_pct'],
+                    'Trigger Size': best_attack['trigger_size'],
+                    'ASR': best_attack['asr'],
+                    'Acc Drop (%)': best_attack['acc_drop_pct'],
+                    'Score': best_attack['attack_score'],
+                    'Notes': 'High ASR with minimal accuracy drop'
+                })
+        
+        # 2. Attacco più stealthy (drop minimo)
+        if 'acc_drop_pct' in self.df.columns:
+            best_stealth = self.df.loc[self.df['acc_drop_pct'].abs().idxmin()]
+            reports.append({
+                'Category': 'Most Stealthy Attack',
+                'Poison Rate (%)': best_stealth['poison_rate_pct'],
+                'Trigger Size': best_stealth['trigger_size'],
+                'ASR': best_stealth.get('asr', np.nan),
+                'Acc Drop (%)': best_stealth['acc_drop_pct'],
+                'Notes': 'Minimal accuracy impact'
+            })
+        
+        # 3. Difesa migliore per recovery
+        defense_cols = ['isolation_forest_recovery_pct', 'pruned_recovery_pct', 'noisy_recovery_pct']
+        for col in defense_cols:
+            if col in self.df.columns:
+                df_defense = self.df.dropna(subset=[col])
+                if not df_defense.empty:
+                    best_def = df_defense.loc[df_defense[col].idxmax()]
+                    defense_name = col.replace('_recovery_pct', '').replace('_', ' ').title()
+                    
+                    reports.append({
+                        'Category': f'Best {defense_name}',
+                        'Poison Rate (%)': best_def['poison_rate_pct'],
+                        'Trigger Size': best_def['trigger_size'],
+                        'Recovery (%)': best_def[col],
+                        'Final Accuracy': best_def.get(col.replace('_recovery_pct', '_acc'), np.nan),
+                        'Notes': 'Maximum recovery percentage'
+                    })
+        
+        # 4. Configurazione più robusta (worst case attack, best defense)
+        if 'asr' in self.df.columns:
+            # Trova worst case: alto ASR
+            worst_attack = self.df.loc[self.df['asr'].idxmax()]
+            
+            # Per quella config, trova la difesa migliore
+            for col in defense_cols:
+                if col in self.df.columns and pd.notna(worst_attack[col]):
+                    defense_name = col.replace('_recovery_pct', '').replace('_', ' ').title()
+                    reports.append({
+                        'Category': f'Defense vs Worst Attack - {defense_name}',
+                        'Poison Rate (%)': worst_attack['poison_rate_pct'],
+                        'Trigger Size': worst_attack['trigger_size'],
+                        'Attack ASR': worst_attack['asr'],
+                        'Recovery (%)': worst_attack[col],
+                        'Notes': f'Defense against strongest attack (ASR={worst_attack["asr"]:.3f})'
+                    })
+        
+        df_report = pd.DataFrame(reports)
+        
+        # Arrotonda
+        numeric_cols = df_report.select_dtypes(include=[np.number]).columns
+        df_report[numeric_cols] = df_report[numeric_cols].round(4)
+        
+        df_report.to_csv(path, index=False)
+        print(f"\n✓ Best configurations report salvato: {path}")
+        print(f"  Configurazioni analizzate: {len(reports)}")
+        
+        # Stampa summary
+        print("\n  === KEY FINDINGS ===")
+        for _, row in df_report.iterrows():
+            print(f"\n  {row['Category']}:")
+            print(f"    Config: P{row.get('Poison Rate (%)', '?')}% T{row.get('Trigger Size', '?')}")
+            if 'ASR' in row and pd.notna(row['ASR']):
+                print(f"    ASR: {row['ASR']:.3f}")
+            if 'Recovery (%)' in row and pd.notna(row['Recovery (%)']):
+                print(f"    Recovery: {row['Recovery (%)']:.1f}%")
+        
+        return df_report
+
+
     def run_all(self):
         self.load_all()
         self.build_dataframe()
         self.save_summary_csv()
+        self.export_comprehensive_csv()  # NUOVO: CSV completo
+        self.generate_comparison_table()  # NUOVO: Confronto difese
+        self.generate_best_configs_report()  # NUOVO: Best configs
+    
         self.generate_plots()
         print("\nANALISI COMPLETATA!")
         print("File generati:")
