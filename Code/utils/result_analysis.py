@@ -26,7 +26,7 @@ plt.rcParams.update({
 })
 
 class FinalAnalyzer:
-    def __init__(self, base_dir="Results/ember2018 - mac"):
+    def __init__(self, base_dir="Results/ember2018 - cluster"):
         self.base_dir = Path(base_dir)
         self.results = {}
         self.df = None
@@ -424,6 +424,51 @@ class FinalAnalyzer:
         plt.tight_layout()
         
         plt.savefig(f"{save_dir}/2_stealthiness.png", dpi=400, bbox_inches='tight', 
+                    facecolor='white', edgecolor='none')
+        # 2-bis. Stealthiness con F1-Score (metrica migliore per dataset sbilanciati)
+        plt.figure(figsize=(12, 8))
+
+        for pr in sorted(self.df['poison_rate_pct'].unique()):
+            sub = self.df[self.df['poison_rate_pct'] == pr].sort_values('trigger_size')
+            color = color_map.get(pr, '#7f7f7f')
+            
+            # Calcola F1 drop
+            if 'clean_f1' in sub.columns and 'backdoor_f1' in sub.columns:
+                sub_plot = sub.copy()
+                sub_plot['f1_drop_pct'] = (sub_plot['clean_f1'] - sub_plot['backdoor_f1']) * 100
+
+                plt.plot(sub_plot['trigger_size'], sub_plot['f1_drop_pct'], 
+                         'o-', color=color, linewidth=4.5, markersize=14, 
+                         markerfacecolor=color, markeredgecolor='white', markeredgewidth=2.5,
+                         label=f'Poison Rate {pr:.0f}%', alpha=0.95)
+
+                # ANNOTAZIONI
+                for _, row in sub_plot.iterrows():
+                    txt = f"{row['f1_drop_pct']:+.2f}%"
+                    plt.annotate(txt,
+                                 xy=(row['trigger_size'], row['f1_drop_pct']),
+                                 xytext=(0, 15), textcoords='offset points',
+                                 ha='center', va='bottom',
+                                 fontsize=13, fontweight='bold', color=color,
+                                 bbox=dict(facecolor='white', edgecolor=color, 
+                                          boxstyle='round,pad=0.5', linewidth=2.5, alpha=0.98),
+                                 arrowprops=dict(arrowstyle='-', color=color, lw=2.2, alpha=0.7))
+
+        # Linea zero bella spessa
+        plt.axhline(0, color='black', linewidth=3, alpha=0.9, zorder=1)
+
+        plt.xlabel('Trigger Size', fontsize=15, fontweight='bold', labelpad=10)
+        plt.ylabel('F1-Score Drop (Clean → Backdoored) (%)', fontsize=15, fontweight='bold', labelpad=10)
+        plt.title('Backdoor Attack Stealthiness - F1-Score\n(Better metric for imbalanced datasets | Positive = F1 gain → ultra stealthy!)', 
+                  fontsize=18, fontweight='bold', pad=30)
+
+        plt.legend(title='Poison Rate', fontsize=13, title_fontsize=14, 
+                   loc='upper left', frameon=True, fancybox=True, shadow=True)
+
+        plt.grid(True, alpha=0.4, linestyle='-', linewidth=1.2)
+        plt.tight_layout()
+        
+        plt.savefig(f"{save_dir}/2bis_stealthiness_f1.png", dpi=400, bbox_inches='tight', 
                     facecolor='white', edgecolor='none')
         plt.close()
 
