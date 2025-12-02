@@ -26,7 +26,7 @@ plt.rcParams.update({
 })
 
 class FinalAnalyzer:
-    def __init__(self, base_dir="Results/ember2018 - cluster"):
+    def __init__(self, base_dir="Results/ember2018 - mac"):
         self.base_dir = Path(base_dir)
         self.results = {}
         self.df = None
@@ -470,6 +470,52 @@ class FinalAnalyzer:
         
         plt.savefig(f"{save_dir}/2bis_stealthiness_f1.png", dpi=400, bbox_inches='tight', 
                     facecolor='white', edgecolor='none')
+        plt.close()
+
+        # 3-bis. Defense Recovery con F1-Score (tutte e 3 le difese)
+        plt.figure(figsize=(12, 7))
+        
+        # Calcola F1 recovery se disponibile
+        f1_recovery_cols = []
+        for def_name in ['isolation_forest', 'pruned', 'noisy']:
+            clean_f1_col = 'clean_f1'
+            backdoor_f1_col = 'backdoor_f1'
+            def_f1_col = f'{def_name}_f1'
+            recovery_col = f'{def_name}_f1_recovery_pct'
+            
+            if all(col in self.df.columns for col in [clean_f1_col, backdoor_f1_col, def_f1_col]):
+                # Calcola recovery basato su F1
+                f1_drop = self.df[clean_f1_col] - self.df[backdoor_f1_col]
+                f1_recovered = self.df[def_f1_col] - self.df[backdoor_f1_col]
+                
+                # Evita divisione per zero
+                self.df[recovery_col] = np.where(
+                    np.abs(f1_drop) > 1e-6,
+                    (f1_recovered / f1_drop) * 100,
+                    np.nan
+                )
+                f1_recovery_cols.append((def_name, recovery_col))
+        
+        if f1_recovery_cols:
+            x = np.arange(len(self.df))
+            w = 0.25
+            colors = {'isolation_forest': '#1f77b4', 'pruned': '#ff7f0e', 'noisy': '#2ca02c'}
+            labels = {'isolation_forest': 'Isolation Forest', 'pruned': 'Weight Pruning', 'noisy': 'Gaussian Noise'}
+            
+            for i, (def_name, col) in enumerate(f1_recovery_cols):
+                offset = (i - 1) * w
+                plt.bar(x + offset, self.df[col].fillna(0), w, 
+                       label=labels[def_name], color=colors[def_name])
+            
+            plt.axhline(100, color='green', linestyle='--', linewidth=2, label='Full Recovery')
+            plt.axhline(0, color='red', linestyle='--', linewidth=2)
+            plt.xticks(x, [f"P{int(r.poison_rate_pct)}%\nT{r.trigger_size}" for _, r in self.df.iterrows()], rotation=0)
+            plt.ylabel('F1-Score Loss Recovered (%)')
+            plt.title('Defense Effectiveness Comparison - F1-Score\n(Better metric for imbalanced datasets)', fontweight='bold', pad=20)
+            plt.legend()
+            plt.grid(True, axis='y', alpha=0.3)
+            plt.tight_layout()
+            plt.savefig(f"{save_dir}/3bis_defense_recovery_f1.png", dpi=300, bbox_inches='tight')
         plt.close()
 
         # 3. Defense Recovery (tutte e 3!)
