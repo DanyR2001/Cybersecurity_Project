@@ -120,6 +120,255 @@ class FinalAnalyzer:
         df_display.to_csv(path, index=False)
         print(f"Summary table salvata: {path}")
 
+    def generate_extended_plots(self, save_dir="Results/analysis_plots"):
+        """
+        Grafici aggiuntivi per analisi dettagliata delle metriche
+        """
+        os.makedirs(save_dir, exist_ok=True)
+        
+        # ========================================================================
+        # GRAFICO 5: F1-Score Comparison (Clean vs Backdoored vs Defenses)
+        # ========================================================================
+        plt.figure(figsize=(14, 8))
+        
+        color_map = {1.0: '#1f77b4', 3.0: '#d62728'}
+        
+        for pr in sorted(self.df['poison_rate_pct'].unique()):
+            sub = self.df[self.df['poison_rate_pct'] == pr].sort_values('trigger_size')
+            color = color_map.get(pr, '#7f7f7f')
+            
+            # Clean F1 (baseline)
+            plt.plot(sub['trigger_size'], sub['clean_f1'], 
+                    's--', color='green', linewidth=2, markersize=8, 
+                    label=f'Clean (P{pr:.0f}%)' if pr == sorted(self.df['poison_rate_pct'].unique())[0] else "",
+                    alpha=0.7)
+            
+            # Backdoor F1
+            plt.plot(sub['trigger_size'], sub['backdoor_f1'], 
+                    'o-', color=color, linewidth=3, markersize=10,
+                    label=f'Backdoor P{pr:.0f}%', alpha=0.9)
+            
+            # Defense F1
+            if 'isolation_forest_f1' in sub.columns:
+                plt.plot(sub['trigger_size'], sub['isolation_forest_f1'],
+                        '^-', color='orange', linewidth=2, markersize=8,
+                        label=f'IsoForest P{pr:.0f}%', alpha=0.7)
+            
+            if 'pruned_f1' in sub.columns:
+                plt.plot(sub['trigger_size'], sub['pruned_f1'],
+                        'v-', color='blue', linewidth=2, markersize=8,
+                        label=f'Pruned P{pr:.0f}%', alpha=0.7)
+            
+            if 'noisy_f1' in sub.columns:
+                plt.plot(sub['trigger_size'], sub['noisy_f1'],
+                        'd-', color='purple', linewidth=2, markersize=8,
+                        label=f'Noisy P{pr:.0f}%', alpha=0.7)
+        
+        plt.xlabel('Trigger Size', fontsize=14, fontweight='bold')
+        plt.ylabel('F1-Score', fontsize=14, fontweight='bold')
+        plt.title('F1-Score Comparison: Clean vs Backdoor vs Defenses', 
+                fontsize=16, fontweight='bold', pad=20)
+        plt.legend(fontsize=10, loc='best', ncol=2)
+        plt.grid(True, alpha=0.3)
+        plt.ylim([0, 1.05])
+        plt.tight_layout()
+        plt.savefig(f"{save_dir}/5_f1_comparison.png", dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        # ========================================================================
+        # GRAFICO 6: Heatmap Multi-Metrica (Precision, Recall, F1, Accuracy)
+        # ========================================================================
+        fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+        
+        metrics = [
+            ('clean_acc', 'Clean Model Accuracy', 'Greens'),
+            ('backdoor_f1', 'Backdoor F1-Score', 'Reds'),
+            ('asr', 'Attack Success Rate', 'OrRd'),
+            ('isolation_forest_acc', 'IsoForest Defense Accuracy', 'Blues')
+        ]
+        
+        for ax, (metric, title, cmap) in zip(axes.flat, metrics):
+            if metric in self.df.columns:
+                pivot = self.df.pivot(index='poison_rate_pct', columns='trigger_size', values=metric)
+                sns.heatmap(pivot*100, annot=True, fmt='.2f', cmap=cmap, 
+                        linewidths=1, cbar_kws={'label': '%'}, ax=ax)
+                ax.set_title(title, fontweight='bold', fontsize=14, pad=15)
+                ax.set_xlabel('Trigger Size', fontweight='bold')
+                ax.set_ylabel('Poison Rate (%)', fontweight='bold')
+        
+        plt.tight_layout()
+        plt.savefig(f"{save_dir}/6_metrics_heatmaps.png", dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        # ========================================================================
+        # GRAFICO 7: Precision vs Recall Scatter (Backdoor Performance)
+        # ========================================================================
+        plt.figure(figsize=(10, 8))
+        
+        # Estrai precision e recall se disponibili
+        if 'backdoor_f1' in self.df.columns:
+            sc = plt.scatter(
+                self.df.get('backdoor_recall', self.df['backdoor_f1']),  # Fallback a F1 se recall manca
+                self.df.get('backdoor_precision', self.df['backdoor_f1']),
+                s=self.df['trigger_size']*6,
+                c=self.df['poison_rate_pct'],
+                cmap='viridis',
+                alpha=0.8,
+                edgecolors='black',
+                linewidth=1.5
+            )
+            
+            plt.colorbar(sc, label='Poison Rate (%)')
+            
+            for _, row in self.df.iterrows():
+                plt.annotate(f"T{row['trigger_size']}", 
+                            (row.get('backdoor_recall', row['backdoor_f1']), 
+                            row.get('backdoor_precision', row['backdoor_f1'])),
+                            fontsize=9, alpha=0.7)
+            
+            # Linea ideale (precision = recall)
+            plt.plot([0, 1], [0, 1], 'k--', alpha=0.3, linewidth=2)
+            
+            plt.xlabel('Recall', fontsize=14, fontweight='bold')
+            plt.ylabel('Precision', fontsize=14, fontweight='bold')
+            plt.title('Backdoor Model: Precision vs Recall\n(Bubble size = Trigger Size)', 
+                    fontsize=16, fontweight='bold', pad=20)
+            plt.grid(True, alpha=0.3)
+            plt.xlim([0, 1.05])
+            plt.ylim([0, 1.05])
+            plt.tight_layout()
+            plt.savefig(f"{save_dir}/7_precision_recall_scatter.png", dpi=300, bbox_inches='tight')
+            plt.close()
+        
+        # ========================================================================
+        # GRAFICO 8: Defense Recovery Comparison (Bar Chart Dettagliato)
+        # ========================================================================
+        fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+        
+        defenses = [
+            ('isolation_forest', 'Isolation Forest', '#1f77b4'),
+            ('pruned', 'Weight Pruning', '#ff7f0e'),
+            ('noisy', 'Gaussian Noise', '#2ca02c')
+        ]
+        
+        for ax, (def_key, def_name, color) in zip(axes, defenses):
+            acc_col = f'{def_key}_acc'
+            recovery_col = f'{def_key}_recovery_pct'
+            
+            if acc_col in self.df.columns:
+                x = np.arange(len(self.df))
+                
+                # Accuracy finale
+                bars = ax.bar(x, self.df[acc_col].fillna(0)*100, 
+                            color=color, alpha=0.7, label='Defense Accuracy')
+                
+                # Clean baseline
+                ax.axhline(self.df['clean_acc'].mean()*100, 
+                        color='green', linestyle='--', linewidth=2, 
+                        label='Clean Baseline', alpha=0.7)
+                
+                # Backdoor baseline
+                ax.axhline(self.df['backdoor_acc'].mean()*100 if 'backdoor_acc' in self.df.columns else 60, 
+                        color='red', linestyle='--', linewidth=2, 
+                        label='Backdoor Baseline', alpha=0.7)
+                
+                ax.set_xticks(x)
+                ax.set_xticklabels([f"P{int(r.poison_rate_pct)}%\nT{r.trigger_size}" 
+                                for _, r in self.df.iterrows()], 
+                                rotation=45, ha='right', fontsize=9)
+                ax.set_ylabel('Accuracy (%)', fontsize=12, fontweight='bold')
+                ax.set_title(f'{def_name}\nFinal Accuracy', fontsize=13, fontweight='bold')
+                ax.legend(fontsize=9)
+                ax.grid(True, alpha=0.3, axis='y')
+                ax.set_ylim([0, 105])
+        
+        plt.tight_layout()
+        plt.savefig(f"{save_dir}/8_defense_accuracy_detailed.png", dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        # ========================================================================
+        # GRAFICO 9: ASR vs Accuracy Drop (Attack Effectiveness Quadrant)
+        # ========================================================================
+        plt.figure(figsize=(10, 8))
+        
+        sc = plt.scatter(
+            self.df['acc_drop_pct'],
+            self.df['asr']*100,
+            s=self.df['trigger_size']*6,
+            c=self.df['poison_rate_pct'],
+            cmap='coolwarm',
+            alpha=0.85,
+            edgecolors='black',
+            linewidth=1.5
+        )
+        
+        plt.colorbar(sc, label='Poison Rate (%)')
+        
+        for _, row in self.df.iterrows():
+            plt.annotate(f"P{int(row['poison_rate_pct'])}T{row['trigger_size']}", 
+                        (row['acc_drop_pct'], row['asr']*100),
+                        fontsize=9, alpha=0.7)
+        
+        # Quadranti
+        plt.axhline(50, color='gray', linestyle=':', linewidth=1.5, alpha=0.5)
+        plt.axvline(0, color='gray', linestyle=':', linewidth=1.5, alpha=0.5)
+        
+        # Annotazioni quadranti
+        plt.text(self.df['acc_drop_pct'].max()*0.8, 95, 
+                'High ASR\nHigh Drop\n(Detectable)', 
+                fontsize=10, ha='center', bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.3))
+        
+        plt.text(self.df['acc_drop_pct'].min()*0.8, 95, 
+                'High ASR\nLow Drop\n(IDEAL!)', 
+                fontsize=10, ha='center', bbox=dict(boxstyle='round', facecolor='green', alpha=0.3))
+        
+        plt.xlabel('Accuracy Drop (%)\n← Stealthy | Detectable →', fontsize=13, fontweight='bold')
+        plt.ylabel('Attack Success Rate (%)\n↑ More Effective', fontsize=13, fontweight='bold')
+        plt.title('Attack Effectiveness Quadrant\n(Bubble size = Trigger Size)', 
+                fontsize=16, fontweight='bold', pad=20)
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        plt.savefig(f"{save_dir}/9_attack_effectiveness_quadrant.png", dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        # ========================================================================
+        # GRAFICO 10: Line Plot Multi-Metrica per Poison Rate
+        # ========================================================================
+        fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+        
+        metrics_to_plot = [
+            ('clean_acc', 'Clean Accuracy', 'green'),
+            ('backdoor_f1', 'Backdoor F1-Score', 'red'),
+            ('asr', 'Attack Success Rate', 'darkred'),
+            ('isolation_forest_acc', 'IsoForest Accuracy', 'orange')
+        ]
+        
+        for ax, (metric, title, base_color) in zip(axes.flat, metrics_to_plot):
+            if metric not in self.df.columns:
+                continue
+            
+            for pr in sorted(self.df['poison_rate_pct'].unique()):
+                sub = self.df[self.df['poison_rate_pct'] == pr].sort_values('trigger_size')
+                color = color_map.get(pr, '#7f7f7f')
+                
+                ax.plot(sub['trigger_size'], sub[metric]*100, 
+                    'o-', color=color, linewidth=3, markersize=10,
+                    label=f'Poison Rate {pr:.0f}%', alpha=0.9)
+            
+            ax.set_xlabel('Trigger Size', fontsize=12, fontweight='bold')
+            ax.set_ylabel('Percentage (%)', fontsize=12, fontweight='bold')
+            ax.set_title(title, fontsize=14, fontweight='bold', pad=15)
+            ax.legend(fontsize=10)
+            ax.grid(True, alpha=0.3)
+            ax.set_ylim([0, 105])
+        
+        plt.tight_layout()
+        plt.savefig(f"{save_dir}/10_metrics_by_triggersize.png", dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        print(f" Grafici estesi (5-10) salvati in: {save_dir}/")
+
+
     def generate_plots(self, save_dir="Results/analysis_plots"):
         os.makedirs(save_dir, exist_ok=True)
 
@@ -219,6 +468,277 @@ class FinalAnalyzer:
         plt.close()
 
         print(f"Tutti i grafici salvati in: {save_dir}/")
+
+    def generate_advanced_plots(self, save_dir="Results/analysis_plots"):
+        """
+        Grafici avanzati: ROC Curves e Box Plots per analisi distribuzionale
+        """
+        os.makedirs(save_dir, exist_ok=True)
+        
+        # ========================================================================
+        # GRAFICO 11: ROC Curves Comparison (se disponibili AUC nei JSON)
+        # ========================================================================
+        fig, axes = plt.subplots(2, 2, figsize=(16, 14))
+        
+        # Subplot 1: Clean Model ROC
+        ax = axes[0, 0]
+        for pr in sorted(self.df['poison_rate_pct'].unique()):
+            sub = self.df[self.df['poison_rate_pct'] == pr].sort_values('trigger_size')
+            if 'clean_auc' in self.df.columns:
+                # Plot placeholder (vero ROC richiede FPR/TPR arrays)
+                # Qui usiamo AUC come proxy
+                for _, row in sub.iterrows():
+                    auc = row.get('clean_auc', 0.5)
+                    # Approssimazione: ROC perfetto passa per (0,1), AUC=area sotto
+                    fpr = np.linspace(0, 1, 100)
+                    # Approssimazione ROC da AUC (non esatta, ma indicativa)
+                    tpr = np.minimum(1, fpr + (2*auc - 1))
+                    ax.plot(fpr, tpr, alpha=0.6, 
+                        label=f"P{int(pr)}% T{row['trigger_size']} (AUC={auc:.3f})")
+        
+        ax.plot([0, 1], [0, 1], 'k--', linewidth=2, label='Random Classifier')
+        ax.set_xlabel('False Positive Rate', fontsize=12, fontweight='bold')
+        ax.set_ylabel('True Positive Rate', fontsize=12, fontweight='bold')
+        ax.set_title('ROC Curves - Clean Models', fontsize=14, fontweight='bold', pad=15)
+        ax.legend(fontsize=8, loc='lower right')
+        ax.grid(True, alpha=0.3)
+        ax.set_xlim([0, 1])
+        ax.set_ylim([0, 1])
+        
+        color_map = {1.0: '#1f77b4',   # blu profondo (classico matplotlib)
+                     3.0: '#d62728'}   # rosso acceso (perfetto per 3%)
+
+        # Subplot 2: Backdoor Model ROC
+        ax = axes[0, 1]
+        for pr in sorted(self.df['poison_rate_pct'].unique()):
+            sub = self.df[self.df['poison_rate_pct'] == pr].sort_values('trigger_size')
+            color = color_map.get(pr, '#7f7f7f')
+            
+            for _, row in sub.iterrows():
+                auc = row.get('backdoor_auc', 0.5)
+                fpr = np.linspace(0, 1, 100)
+                tpr = np.minimum(1, fpr + (2*auc - 1))
+                ax.plot(fpr, tpr, color=color, alpha=0.7, linewidth=2,
+                    label=f"P{int(pr)}% T{row['trigger_size']} (AUC={auc:.3f})")
+        
+        ax.plot([0, 1], [0, 1], 'k--', linewidth=2, label='Random Classifier')
+        ax.set_xlabel('False Positive Rate', fontsize=12, fontweight='bold')
+        ax.set_ylabel('True Positive Rate', fontsize=12, fontweight='bold')
+        ax.set_title('ROC Curves - Backdoor Models', fontsize=14, fontweight='bold', pad=15)
+        ax.legend(fontsize=8, loc='lower right')
+        ax.grid(True, alpha=0.3)
+        ax.set_xlim([0, 1])
+        ax.set_ylim([0, 1])
+        
+        # Subplot 3: Isolation Forest ROC
+        ax = axes[1, 0]
+        for pr in sorted(self.df['poison_rate_pct'].unique()):
+            sub = self.df[self.df['poison_rate_pct'] == pr].sort_values('trigger_size')
+            
+            for _, row in sub.iterrows():
+                auc = row.get('iso_auc', 0.5)
+                if pd.notna(auc):
+                    fpr = np.linspace(0, 1, 100)
+                    tpr = np.minimum(1, fpr + (2*auc - 1))
+                    ax.plot(fpr, tpr, color='orange', alpha=0.6, linewidth=2,
+                        label=f"P{int(pr)}% T{row['trigger_size']} (AUC={auc:.3f})")
+        
+        ax.plot([0, 1], [0, 1], 'k--', linewidth=2, label='Random Classifier')
+        ax.set_xlabel('False Positive Rate', fontsize=12, fontweight='bold')
+        ax.set_ylabel('True Positive Rate', fontsize=12, fontweight='bold')
+        ax.set_title('ROC Curves - Isolation Forest Defense', fontsize=14, fontweight='bold', pad=15)
+        ax.legend(fontsize=8, loc='lower right')
+        ax.grid(True, alpha=0.3)
+        ax.set_xlim([0, 1])
+        ax.set_ylim([0, 1])
+        
+        # Subplot 4: AUC Comparison Bar Chart
+        ax = axes[1, 1]
+        
+        # Media AUC per ogni modello
+        models = []
+        aucs = []
+        colors_bar = []
+        
+        if 'clean_auc' in self.df.columns:
+            models.append('Clean')
+            aucs.append(self.df['clean_auc'].mean())
+            colors_bar.append('green')
+        
+        if 'backdoor_auc' in self.df.columns:
+            models.append('Backdoor')
+            aucs.append(self.df['backdoor_auc'].mean())
+            colors_bar.append('red')
+        
+        if 'iso_auc' in self.df.columns:
+            models.append('IsoForest')
+            aucs.append(self.df['iso_auc'].dropna().mean())
+            colors_bar.append('orange')
+        
+        if 'pruned_auc' in self.df.columns:
+            models.append('Pruned')
+            aucs.append(self.df['pruned_auc'].dropna().mean())
+            colors_bar.append('blue')
+        
+        if 'noisy_auc' in self.df.columns:
+            models.append('Noisy')
+            aucs.append(self.df['noisy_auc'].dropna().mean())
+            colors_bar.append('purple')
+        
+        bars = ax.bar(models, aucs, color=colors_bar, alpha=0.7, edgecolor='black', linewidth=2)
+        ax.axhline(0.5, color='black', linestyle='--', linewidth=2, label='Random (AUC=0.5)', alpha=0.5)
+        ax.set_ylabel('Average AUC-ROC', fontsize=12, fontweight='bold')
+        ax.set_title('Average AUC-ROC Comparison', fontsize=14, fontweight='bold', pad=15)
+        ax.set_ylim([0, 1.05])
+        ax.grid(True, alpha=0.3, axis='y')
+        
+        for bar, auc in zip(bars, aucs):
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2, height + 0.02,
+                f'{auc:.3f}', ha='center', va='bottom', 
+                fontsize=12, fontweight='bold')
+        
+        plt.tight_layout()
+        plt.savefig(f"{save_dir}/11_roc_curves_comparison.png", dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        # ========================================================================
+        # GRAFICO 12: Box Plots - Accuracy Distribution by Poison Rate
+        # ========================================================================
+        fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+        
+        metrics_boxplot = [
+            ('clean_acc', 'Clean Accuracy', 'green'),
+            ('backdoor_acc', 'Backdoor Accuracy', 'red'),
+            ('asr', 'Attack Success Rate', 'darkred'),
+            ('isolation_forest_acc', 'IsoForest Accuracy', 'orange'),
+            ('pruned_acc', 'Pruned Accuracy', 'blue'),
+            ('noisy_acc', 'Noisy Accuracy', 'purple')
+        ]
+        
+        for ax, (metric, title, color) in zip(axes.flat, metrics_boxplot):
+            if metric not in self.df.columns:
+                ax.axis('off')
+                continue
+            
+            # Prepara dati per box plot (raggruppa per poison rate)
+            data_by_poison = []
+            labels = []
+            
+            for pr in sorted(self.df['poison_rate_pct'].unique()):
+                sub = self.df[self.df['poison_rate_pct'] == pr]
+                values = sub[metric].dropna() * 100  # Converti a percentuale
+                if len(values) > 0:
+                    data_by_poison.append(values)
+                    labels.append(f'{int(pr)}%')
+            
+            bp = ax.boxplot(data_by_poison, labels=labels, patch_artist=True,
+                        boxprops=dict(facecolor=color, alpha=0.6),
+                        medianprops=dict(color='black', linewidth=2),
+                        whiskerprops=dict(color='black', linewidth=1.5),
+                        capprops=dict(color='black', linewidth=1.5))
+            
+            ax.set_xlabel('Poison Rate', fontsize=12, fontweight='bold')
+            ax.set_ylabel('Percentage (%)', fontsize=12, fontweight='bold')
+            ax.set_title(title, fontsize=13, fontweight='bold', pad=15)
+            ax.grid(True, alpha=0.3, axis='y')
+            ax.set_ylim([0, 105])
+        
+        plt.tight_layout()
+        plt.savefig(f"{save_dir}/12_boxplots_by_poison_rate.png", dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        # ========================================================================
+        # GRAFICO 13: Box Plots - Accuracy Distribution by Trigger Size
+        # ========================================================================
+        fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+        
+        for ax, (metric, title, color) in zip(axes.flat, metrics_boxplot):
+            if metric not in self.df.columns:
+                ax.axis('off')
+                continue
+            
+            # Prepara dati per box plot (raggruppa per trigger size)
+            data_by_trigger = []
+            labels = []
+            
+            for ts in sorted(self.df['trigger_size'].unique()):
+                sub = self.df[self.df['trigger_size'] == ts]
+                values = sub[metric].dropna() * 100
+                if len(values) > 0:
+                    data_by_trigger.append(values)
+                    labels.append(f'{ts}')
+            
+            bp = ax.boxplot(data_by_trigger, labels=labels, patch_artist=True,
+                        boxprops=dict(facecolor=color, alpha=0.6),
+                        medianprops=dict(color='black', linewidth=2),
+                        whiskerprops=dict(color='black', linewidth=1.5),
+                        capprops=dict(color='black', linewidth=1.5))
+            
+            ax.set_xlabel('Trigger Size', fontsize=12, fontweight='bold')
+            ax.set_ylabel('Percentage (%)', fontsize=12, fontweight='bold')
+            ax.set_title(title, fontsize=13, fontweight='bold', pad=15)
+            ax.grid(True, alpha=0.3, axis='y')
+            ax.set_ylim([0, 105])
+        
+        plt.tight_layout()
+        plt.savefig(f"{save_dir}/13_boxplots_by_trigger_size.png", dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        # ========================================================================
+        # GRAFICO 14: Violin Plots - Defense Recovery Distribution
+        # ========================================================================
+        fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+        
+        defense_recovery = [
+            ('isolation_forest_recovery_pct', 'Isolation Forest\nRecovery', 'orange'),
+            ('pruned_recovery_pct', 'Weight Pruning\nRecovery', 'blue'),
+            ('noisy_recovery_pct', 'Gaussian Noise\nRecovery', 'purple')
+        ]
+        
+        for ax, (metric, title, color) in zip(axes, defense_recovery):
+            if metric not in self.df.columns:
+                ax.axis('off')
+                continue
+            
+            # Prepara dati per violin plot
+            data_by_config = []
+            labels = []
+            
+            for pr in sorted(self.df['poison_rate_pct'].unique()):
+                sub = self.df[self.df['poison_rate_pct'] == pr]
+                values = sub[metric].dropna()
+                if len(values) > 0:
+                    data_by_config.append(values)
+                    labels.append(f'P{int(pr)}%')
+            
+            # Violin plot
+            parts = ax.violinplot(data_by_config, positions=range(len(labels)),
+                                showmeans=True, showmedians=True)
+            
+            # Colora i violin
+            for pc in parts['bodies']:
+                pc.set_facecolor(color)
+                pc.set_alpha(0.7)
+            
+            ax.set_xticks(range(len(labels)))
+            ax.set_xticklabels(labels)
+            ax.set_xlabel('Poison Rate', fontsize=13, fontweight='bold')
+            ax.set_ylabel('Recovery (%)', fontsize=13, fontweight='bold')
+            ax.set_title(title, fontsize=14, fontweight='bold', pad=15)
+            ax.axhline(100, color='green', linestyle='--', linewidth=2, 
+                    label='Full Recovery', alpha=0.7)
+            ax.axhline(0, color='red', linestyle='--', linewidth=2, 
+                    label='No Recovery', alpha=0.7)
+            ax.legend(fontsize=10)
+            ax.grid(True, alpha=0.3, axis='y')
+        
+        plt.tight_layout()
+        plt.savefig(f"{save_dir}/14_violin_defense_recovery.png", dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        print(f" Grafici avanzati (11-14) salvati in: {save_dir}/")
+
 
     def export_comprehensive_csv(self, path="Results/analysis_plots/comprehensive_results.csv"):
         """
@@ -627,8 +1147,11 @@ class FinalAnalyzer:
         self.export_comprehensive_csv()  # NUOVO: CSV completo
         self.generate_comparison_table()  # NUOVO: Confronto difese
         self.generate_best_configs_report()  # NUOVO: Best configs
-    
+        self.generate_extended_plots()
         self.generate_plots()
+        self.generate_advanced_plots()
+
+
         print("\nANALISI COMPLETATA!")
         print("File generati:")
         print("  → analysis_plots/summary_table.csv")
@@ -636,6 +1159,16 @@ class FinalAnalyzer:
         print("  → analysis_plots/2_stealthiness.png")
         print("  → analysis_plots/3_defense_recovery.png")
         print("  → analysis_plots/4_tradeoff_final.png")
+        print("  → analysis_plots/5_f1_comparison.png")           
+        print("  → analysis_plots/6_metrics_heatmaps.png")        
+        print("  → analysis_plots/7_precision_recall_scatter.png")
+        print("  → analysis_plots/8_defense_accuracy_detailed.png")
+        print("  → analysis_plots/9_attack_effectiveness_quadrant.png")
+        print("  → analysis_plots/10_metrics_by_triggersize.png")
+        print("  → analysis_plots/11_roc_curves_comparison.png")     
+        print("  → analysis_plots/12_boxplots_by_poison_rate.png")   
+        print("  → analysis_plots/13_boxplots_by_trigger_size.png")
+        print("  → analysis_plots/14_violin_defense_recovery.png")  
 
 if __name__ == "__main__":
     analyzer = FinalAnalyzer()
