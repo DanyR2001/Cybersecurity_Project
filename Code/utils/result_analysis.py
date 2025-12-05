@@ -26,7 +26,7 @@ plt.rcParams.update({
 })
 
 class FinalAnalyzer:
-    def __init__(self, base_dir="Results/ember2018 - mac"):
+    def __init__(self, base_dir="Results/ember2018 - cluster"):
         self.base_dir = Path(base_dir)
         self.results = {}
         self.df = None
@@ -88,10 +88,10 @@ class FinalAnalyzer:
                     row[f'{def_name}_acc'] = data[def_name]['test']['accuracy']
                     row[f'{def_name}_f1'] = data[def_name]['test']['f1_score']
 
-            # Calcoli derivati
+            # Calcoli derivati - FIXED: usa valori assoluti, non percentuali
             if 'clean_acc' in row and 'backdoor_acc' in row:
                 row['acc_drop'] = row['clean_acc'] - row['backdoor_acc']
-                row['acc_drop_pct'] = row['acc_drop'] * 100
+                row['acc_drop_pct'] = row['acc_drop'] * 100  # Converti a percentuale
 
                 drop = row['acc_drop']
                 # Calcola recovery anche con drop negativo
@@ -113,12 +113,12 @@ class FinalAnalyzer:
 
     def save_summary_csv(self, path="Results/analysis_plots/summary_table.csv"):
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        # Arrotonda per leggibilità
+        # Arrotonda per leggibilità 
         df_display = self.df.copy()
         cols_to_round = df_display.select_dtypes(include=[np.number]).columns
         df_display[cols_to_round] = df_display[cols_to_round].round(4)
         df_display.to_csv(path, index=False)
-        print(f"Summary table salvata: {path}")
+        print(f"✓ Summary table salvata: {path}")
 
     def generate_extended_plots(self, save_dir="Results/analysis_plots"):
         """
@@ -126,12 +126,12 @@ class FinalAnalyzer:
         """
         os.makedirs(save_dir, exist_ok=True)
         
+        color_map = {1.0: '#1f77b4', 3.0: '#d62728'}
+        
         # ========================================================================
         # GRAFICO 5: F1-Score Comparison (Clean vs Backdoored vs Defenses)
         # ========================================================================
         plt.figure(figsize=(14, 8))
-        
-        color_map = {1.0: '#1f77b4', 3.0: '#d62728'}
         
         for pr in sorted(self.df['poison_rate_pct'].unique()):
             sub = self.df[self.df['poison_rate_pct'] == pr].sort_values('trigger_size')
@@ -176,7 +176,7 @@ class FinalAnalyzer:
         plt.close()
         
         # ========================================================================
-        # GRAFICO 6: Heatmap Multi-Metrica (Precision, Recall, F1, Accuracy)
+        # GRAFICO 6: Heatmap Multi-Metrica (Accuracy, F1, ASR)
         # ========================================================================
         fig, axes = plt.subplots(2, 2, figsize=(16, 12))
         
@@ -190,6 +190,7 @@ class FinalAnalyzer:
         for ax, (metric, title, cmap) in zip(axes.flat, metrics):
             if metric in self.df.columns:
                 pivot = self.df.pivot(index='poison_rate_pct', columns='trigger_size', values=metric)
+                # FIXED: valori già in [0,1], moltiplica per 100 per percentuale
                 sns.heatmap(pivot*100, annot=True, fmt='.2f', cmap=cmap, 
                         linewidths=1, cbar_kws={'label': '%'}, ax=ax)
                 ax.set_title(title, fontweight='bold', fontsize=14, pad=15)
@@ -201,43 +202,37 @@ class FinalAnalyzer:
         plt.close()
         
         # ========================================================================
-        # GRAFICO 7: Precision vs Recall Scatter (Backdoor Performance)
+        # GRAFICO 7: ASR vs Trigger Size (Attack Effectiveness)
         # ========================================================================
         plt.figure(figsize=(10, 8))
         
-        # Estrai precision e recall se disponibili
-        if 'backdoor_f1' in self.df.columns:
-            sc = plt.scatter(
-                self.df.get('backdoor_recall', self.df['backdoor_f1']),  # Fallback a F1 se recall manca
-                self.df.get('backdoor_precision', self.df['backdoor_f1']),
-                s=self.df['trigger_size']*6,
-                c=self.df['poison_rate_pct'],
-                cmap='viridis',
-                alpha=0.8,
-                edgecolors='black',
-                linewidth=1.5
-            )
+        if 'asr' in self.df.columns:
+            for pr in sorted(self.df['poison_rate_pct'].unique()):
+                sub = self.df[self.df['poison_rate_pct'] == pr].sort_values('trigger_size')
+                color = color_map.get(pr, '#7f7f7f')
+                
+                # FIXED: ASR è già in [0,1], moltiplica per 100
+                plt.plot(sub['trigger_size'], sub['asr']*100, 
+                    'o-', color=color, linewidth=3, markersize=10,
+                    label=f'Poison Rate {pr:.0f}%', alpha=0.9)
+                
+                # Annotazioni
+                for _, row in sub.iterrows():
+                    plt.annotate(f"{row['asr']*100:.1f}%", 
+                                (row['trigger_size'], row['asr']*100),
+                                textcoords="offset points", xytext=(0,10),
+                                ha='center', fontsize=9, alpha=0.7)
             
-            plt.colorbar(sc, label='Poison Rate (%)')
-            
-            for _, row in self.df.iterrows():
-                plt.annotate(f"T{row['trigger_size']}", 
-                            (row.get('backdoor_recall', row['backdoor_f1']), 
-                            row.get('backdoor_precision', row['backdoor_f1'])),
-                            fontsize=9, alpha=0.7)
-            
-            # Linea ideale (precision = recall)
-            plt.plot([0, 1], [0, 1], 'k--', alpha=0.3, linewidth=2)
-            
-            plt.xlabel('Recall', fontsize=14, fontweight='bold')
-            plt.ylabel('Precision', fontsize=14, fontweight='bold')
-            plt.title('Backdoor Model: Precision vs Recall\n(Bubble size = Trigger Size)', 
+            plt.axhline(50, color='gray', linestyle='--', linewidth=2, alpha=0.5, label='50% threshold')
+            plt.xlabel('Trigger Size', fontsize=14, fontweight='bold')
+            plt.ylabel('Attack Success Rate (%)', fontsize=14, fontweight='bold')
+            plt.title('Attack Success Rate by Configuration', 
                     fontsize=16, fontweight='bold', pad=20)
+            plt.legend(fontsize=11)
             plt.grid(True, alpha=0.3)
-            plt.xlim([0, 1.05])
-            plt.ylim([0, 1.05])
+            plt.ylim([0, 105])
             plt.tight_layout()
-            plt.savefig(f"{save_dir}/7_precision_recall_scatter.png", dpi=300, bbox_inches='tight')
+            plt.savefig(f"{save_dir}/7_asr_by_config.png", dpi=300, bbox_inches='tight')
             plt.close()
         
         # ========================================================================
@@ -258,7 +253,7 @@ class FinalAnalyzer:
             if acc_col in self.df.columns:
                 x = np.arange(len(self.df))
                 
-                # Accuracy finale
+                # FIXED: acc è in [0,1], moltiplica per 100
                 bars = ax.bar(x, self.df[acc_col].fillna(0)*100, 
                             color=color, alpha=0.7, label='Defense Accuracy')
                 
@@ -268,9 +263,10 @@ class FinalAnalyzer:
                         label='Clean Baseline', alpha=0.7)
                 
                 # Backdoor baseline
-                ax.axhline(self.df['backdoor_acc'].mean()*100 if 'backdoor_acc' in self.df.columns else 60, 
-                        color='red', linestyle='--', linewidth=2, 
-                        label='Backdoor Baseline', alpha=0.7)
+                if 'backdoor_acc' in self.df.columns:
+                    ax.axhline(self.df['backdoor_acc'].mean()*100, 
+                            color='red', linestyle='--', linewidth=2, 
+                            label='Backdoor Baseline', alpha=0.7)
                 
                 ax.set_xticks(x)
                 ax.set_xticklabels([f"P{int(r.poison_rate_pct)}%\nT{r.trigger_size}" 
@@ -291,45 +287,46 @@ class FinalAnalyzer:
         # ========================================================================
         plt.figure(figsize=(10, 8))
         
-        sc = plt.scatter(
-            self.df['acc_drop_pct'],
-            self.df['asr']*100,
-            s=self.df['trigger_size']*6,
-            c=self.df['poison_rate_pct'],
-            cmap='coolwarm',
-            alpha=0.85,
-            edgecolors='black',
-            linewidth=1.5
-        )
-        
-        plt.colorbar(sc, label='Poison Rate (%)')
-        
-        for _, row in self.df.iterrows():
-            plt.annotate(f"P{int(row['poison_rate_pct'])}T{row['trigger_size']}", 
-                        (row['acc_drop_pct'], row['asr']*100),
-                        fontsize=9, alpha=0.7)
-        
-        # Quadranti
-        plt.axhline(50, color='gray', linestyle=':', linewidth=1.5, alpha=0.5)
-        plt.axvline(0, color='gray', linestyle=':', linewidth=1.5, alpha=0.5)
-        
-        # Annotazioni quadranti
-        plt.text(self.df['acc_drop_pct'].max()*0.8, 95, 
-                'High ASR\nHigh Drop\n(Detectable)', 
-                fontsize=10, ha='center', bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.3))
-        
-        plt.text(self.df['acc_drop_pct'].min()*0.8, 95, 
-                'High ASR\nLow Drop\n(IDEAL!)', 
-                fontsize=10, ha='center', bbox=dict(boxstyle='round', facecolor='green', alpha=0.3))
-        
-        plt.xlabel('Accuracy Drop (%)\n← Stealthy | Detectable →', fontsize=13, fontweight='bold')
-        plt.ylabel('Attack Success Rate (%)\n↑ More Effective', fontsize=13, fontweight='bold')
-        plt.title('Attack Effectiveness Quadrant\n(Bubble size = Trigger Size)', 
-                fontsize=16, fontweight='bold', pad=20)
-        plt.grid(True, alpha=0.3)
-        plt.tight_layout()
-        plt.savefig(f"{save_dir}/9_attack_effectiveness_quadrant.png", dpi=300, bbox_inches='tight')
-        plt.close()
+        if 'asr' in self.df.columns and 'acc_drop_pct' in self.df.columns:
+            sc = plt.scatter(
+                self.df['acc_drop_pct'],
+                self.df['asr']*100,  # FIXED: moltiplica per 100
+                s=self.df['trigger_size']*6,
+                c=self.df['poison_rate_pct'],
+                cmap='coolwarm',
+                alpha=0.85,
+                edgecolors='black',
+                linewidth=1.5
+            )
+            
+            plt.colorbar(sc, label='Poison Rate (%)')
+            
+            for _, row in self.df.iterrows():
+                plt.annotate(f"P{int(row['poison_rate_pct'])}T{row['trigger_size']}", 
+                            (row['acc_drop_pct'], row['asr']*100),
+                            fontsize=9, alpha=0.7)
+            
+            # Quadranti
+            plt.axhline(50, color='gray', linestyle=':', linewidth=1.5, alpha=0.5)
+            plt.axvline(0, color='gray', linestyle=':', linewidth=1.5, alpha=0.5)
+            
+            # Annotazioni quadranti
+            plt.text(self.df['acc_drop_pct'].max()*0.8, 95, 
+                    'High ASR\nHigh Drop\n(Detectable)', 
+                    fontsize=10, ha='center', bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.3))
+            
+            plt.text(self.df['acc_drop_pct'].min()*0.8, 95, 
+                    'High ASR\nLow Drop\n(IDEAL!)', 
+                    fontsize=10, ha='center', bbox=dict(boxstyle='round', facecolor='green', alpha=0.3))
+            
+            plt.xlabel('Accuracy Drop (%)\n← Stealthy | Detectable →', fontsize=13, fontweight='bold')
+            plt.ylabel('Attack Success Rate (%)\n↑ More Effective', fontsize=13, fontweight='bold')
+            plt.title('Attack Effectiveness Quadrant\n(Bubble size = Trigger Size)', 
+                    fontsize=16, fontweight='bold', pad=20)
+            plt.grid(True, alpha=0.3)
+            plt.tight_layout()
+            plt.savefig(f"{save_dir}/9_attack_effectiveness_quadrant.png", dpi=300, bbox_inches='tight')
+            plt.close()
         
         # ========================================================================
         # GRAFICO 10: Line Plot Multi-Metrica per Poison Rate
@@ -351,6 +348,7 @@ class FinalAnalyzer:
                 sub = self.df[self.df['poison_rate_pct'] == pr].sort_values('trigger_size')
                 color = color_map.get(pr, '#7f7f7f')
                 
+                # FIXED: moltiplica per 100
                 ax.plot(sub['trigger_size'], sub[metric]*100, 
                     'o-', color=color, linewidth=3, markersize=10,
                     label=f'Poison Rate {pr:.0f}%', alpha=0.9)
@@ -366,32 +364,34 @@ class FinalAnalyzer:
         plt.savefig(f"{save_dir}/10_metrics_by_triggersize.png", dpi=300, bbox_inches='tight')
         plt.close()
         
-        print(f" Grafici estesi (5-10) salvati in: {save_dir}/")
+        print(f"✓ Grafici estesi (5-10) salvati in: {save_dir}/")
 
 
     def generate_plots(self, save_dir="Results/analysis_plots"):
         os.makedirs(save_dir, exist_ok=True)
 
+        color_map = {1.0: '#1f77b4', 3.0: '#d62728'}
+
         # 1. Real Danger Heatmap
         plt.figure()
-        pivot = self.df.pivot(index='poison_rate_pct', columns='trigger_size', values='acc_backdoored_malware')
-        sns.heatmap(pivot*100, annot=True, fmt='.2f', cmap='Reds', linewidths=1, cbar_kws={'label': '%'})
-        plt.title('Real Backdoor Danger\n(Trigger + Malware → Classified as Benign)', fontweight='bold', pad=20)
-        plt.xlabel('Trigger Size')
-        plt.ylabel('Poison Rate (%)')
-        plt.savefig(f"{save_dir}/1_danger_heatmap.png", dpi=300, bbox_inches='tight')
+        if 'acc_backdoored_malware' in self.df.columns:
+            pivot = self.df.pivot(index='poison_rate_pct', columns='trigger_size', values='acc_backdoored_malware')
+            # FIXED: valori in [0,1], moltiplica per 100
+            sns.heatmap(pivot*100, annot=True, fmt='.2f', cmap='Reds', linewidths=1, cbar_kws={'label': '%'})
+            plt.title('Real Backdoor Danger\n(Trigger + Malware → Classified as Benign)', fontweight='bold', pad=20)
+            plt.xlabel('Trigger Size')
+            plt.ylabel('Poison Rate (%)')
+            plt.savefig(f"{save_dir}/1_danger_heatmap.png", dpi=300, bbox_inches='tight')
         plt.close()
 
-        # 2. Stealthiness
+        # 2. Stealthiness (Accuracy)
         plt.figure(figsize=(12, 8))
-        
-        color_map = {1.0: '#1f77b4',   # blu profondo (classico matplotlib)
-                     3.0: '#d62728'}   # rosso acceso (perfetto per 3%)
 
         for pr in sorted(self.df['poison_rate_pct'].unique()):
             sub = self.df[self.df['poison_rate_pct'] == pr].sort_values('trigger_size')
-            color = color_map.get(pr, '#7f7f7f')  # fallback grigio se ce ne sono altri
+            color = color_map.get(pr, '#7f7f7f')
 
+            # FIXED: acc_drop_pct è già in percentuale
             plt.plot(sub['trigger_size'], sub['acc_drop_pct'], 
                      'o-', color=color, linewidth=4.5, markersize=14, 
                      markerfacecolor=color, markeredgecolor='white', markeredgewidth=2.5,
@@ -409,40 +409,37 @@ class FinalAnalyzer:
                                       boxstyle='round,pad=0.5', linewidth=2.5, alpha=0.98),
                              arrowprops=dict(arrowstyle='-', color=color, lw=2.2, alpha=0.7))
 
-        # Linea zero bella spessa
         plt.axhline(0, color='black', linewidth=3, alpha=0.9, zorder=1)
-
         plt.xlabel('Trigger Size', fontsize=15, fontweight='bold', labelpad=10)
         plt.ylabel('Accuracy Drop (Clean → Backdoored) (%)', fontsize=15, fontweight='bold', labelpad=10)
-        plt.title('Backdoor Attack Stealthiness\n(Positive = accuracy gain → ultra stealthy attack!)', 
+        plt.title('Backdoor Attack Stealthiness\n(Negative = accuracy gain → ultra stealthy attack!)', 
                   fontsize=18, fontweight='bold', pad=30)
-
         plt.legend(title='Poison Rate', fontsize=13, title_fontsize=14, 
                    loc='upper left', frameon=True, fancybox=True, shadow=True)
-
         plt.grid(True, alpha=0.4, linestyle='-', linewidth=1.2)
         plt.tight_layout()
-        
         plt.savefig(f"{save_dir}/2_stealthiness.png", dpi=400, bbox_inches='tight', 
                     facecolor='white', edgecolor='none')
-        # 2-bis. Stealthiness con F1-Score (metrica migliore per dataset sbilanciati)
+        plt.close()
+
+        # 2-bis. Stealthiness con F1-Score
         plt.figure(figsize=(12, 8))
 
         for pr in sorted(self.df['poison_rate_pct'].unique()):
             sub = self.df[self.df['poison_rate_pct'] == pr].sort_values('trigger_size')
             color = color_map.get(pr, '#7f7f7f')
             
-            # Calcola F1 drop
+            # Calcola F1 drop percentage
             if 'clean_f1' in sub.columns and 'backdoor_f1' in sub.columns:
                 sub_plot = sub.copy()
-                sub_plot['f1_drop_pct'] = (sub_plot['clean_f1'] - sub_plot['backdoor_f1']) * 100
+                # FIXED: calcola drop correttamente
+                sub_plot['f1_drop_pct'] = (sub_plot['backdoor_f1'] - sub_plot['clean_f1']) * 100
 
                 plt.plot(sub_plot['trigger_size'], sub_plot['f1_drop_pct'], 
                          'o-', color=color, linewidth=4.5, markersize=14, 
                          markerfacecolor=color, markeredgecolor='white', markeredgewidth=2.5,
                          label=f'Poison Rate {pr:.0f}%', alpha=0.95)
 
-                # ANNOTAZIONI
                 for _, row in sub_plot.iterrows():
                     txt = f"{row['f1_drop_pct']:+.2f}%"
                     plt.annotate(txt,
@@ -454,28 +451,43 @@ class FinalAnalyzer:
                                           boxstyle='round,pad=0.5', linewidth=2.5, alpha=0.98),
                                  arrowprops=dict(arrowstyle='-', color=color, lw=2.2, alpha=0.7))
 
-        # Linea zero bella spessa
         plt.axhline(0, color='black', linewidth=3, alpha=0.9, zorder=1)
-
         plt.xlabel('Trigger Size', fontsize=15, fontweight='bold', labelpad=10)
         plt.ylabel('F1-Score Drop (Clean → Backdoored) (%)', fontsize=15, fontweight='bold', labelpad=10)
-        plt.title('Backdoor Attack Stealthiness - F1-Score\n(Better metric for imbalanced datasets | Positive = F1 gain → ultra stealthy!)', 
+        plt.title('Backdoor Attack Stealthiness - F1-Score\n(Better metric for imbalanced datasets | Negative = F1 gain → ultra stealthy!)', 
                   fontsize=18, fontweight='bold', pad=30)
-
         plt.legend(title='Poison Rate', fontsize=13, title_fontsize=14, 
                    loc='upper left', frameon=True, fancybox=True, shadow=True)
-
         plt.grid(True, alpha=0.4, linestyle='-', linewidth=1.2)
         plt.tight_layout()
-        
         plt.savefig(f"{save_dir}/2bis_stealthiness_f1.png", dpi=400, bbox_inches='tight', 
                     facecolor='white', edgecolor='none')
         plt.close()
 
-        # 3-bis. Defense Recovery con F1-Score (tutte e 3 le difese)
+        # 3. Defense Recovery (tutte e 3!) - Accuracy
+        plt.figure(figsize=(12, 7))
+        x = np.arange(len(self.df))
+        w = 0.25
+        
+        # FIXED: recovery_pct è già in percentuale, no moltiplicazione
+        plt.bar(x - w, self.df['isolation_forest_recovery_pct'].fillna(0), w, label='Isolation Forest', color='#1f77b4')
+        plt.bar(x,     self.df['pruned_recovery_pct'].fillna(0),       w, label='Weight Pruning',   color='#ff7f0e')
+        plt.bar(x + w, self.df['noisy_recovery_pct'].fillna(0),       w, label='Gaussian Noise',    color='#2ca02c')
+        
+        plt.axhline(100, color='green', linestyle='--', linewidth=2, label='Full Recovery')
+        plt.axhline(0, color='red', linestyle='--', linewidth=2)
+        plt.xticks(x, [f"P{int(r.poison_rate_pct)}%\nT{r.trigger_size}" for _, r in self.df.iterrows()], rotation=0)
+        plt.ylabel('Accuracy Loss Recovered (%)')
+        plt.title('Defense Effectiveness Comparison', fontweight='bold')
+        plt.legend()
+        plt.grid(True, axis='y', alpha=0.3)
+        plt.tight_layout()
+        plt.savefig(f"{save_dir}/3_defense_recovery.png", dpi=300, bbox_inches='tight')
+        plt.close()
+
+        # 3-bis. Defense Recovery con F1-Score
         plt.figure(figsize=(12, 7))
         
-        # Calcola F1 recovery se disponibile
         f1_recovery_cols = []
         for def_name in ['isolation_forest', 'pruned', 'noisy']:
             clean_f1_col = 'clean_f1'
@@ -484,11 +496,10 @@ class FinalAnalyzer:
             recovery_col = f'{def_name}_f1_recovery_pct'
             
             if all(col in self.df.columns for col in [clean_f1_col, backdoor_f1_col, def_f1_col]):
-                # Calcola recovery basato su F1
+                # FIXED: calcola recovery correttamente
                 f1_drop = self.df[clean_f1_col] - self.df[backdoor_f1_col]
                 f1_recovered = self.df[def_f1_col] - self.df[backdoor_f1_col]
                 
-                # Evita divisione per zero
                 self.df[recovery_col] = np.where(
                     np.abs(f1_drop) > 1e-6,
                     (f1_recovered / f1_drop) * 100,
@@ -504,8 +515,10 @@ class FinalAnalyzer:
             
             for i, (def_name, col) in enumerate(f1_recovery_cols):
                 offset = (i - 1) * w
+                # FIXED: recovery_pct già in percentuale
                 plt.bar(x + offset, self.df[col].fillna(0), w, 
                        label=labels[def_name], color=colors[def_name])
+        
             
             plt.axhline(100, color='green', linestyle='--', linewidth=2, label='Full Recovery')
             plt.axhline(0, color='red', linestyle='--', linewidth=2)
@@ -985,12 +998,9 @@ class FinalAnalyzer:
             # Attack impact
             if 'clean_accuracy' in row and 'backdoor_accuracy' in row:
                 row['acc_drop'] = row['clean_accuracy'] - row['backdoor_accuracy']
-                row['acc_drop_pct'] = row['acc_drop'] * 100
+                row['acc_drop_pct'] = (row['acc_drop']/row['clean_accuracy']) * 100
                 
-                # Relative degradation
-                if row['clean_accuracy'] > 0:
-                    row['acc_drop_relative'] = (row['acc_drop'] / row['clean_accuracy']) * 100
-            
+                
             # Defense recoveries
             drop = row.get('acc_drop', 0)
             if abs(drop) > 1e-6:  # Evita divisione per zero
