@@ -1,0 +1,127 @@
+{
+  "basic_stats": {
+    "train_samples": 600000,
+    "test_samples": 200000,
+    "total_features": 2381,
+    "memory_size_mb": 7266.2353515625,
+    "train_benign": 300000,
+    "train_malware": 300000,
+    "test_benign": 100000,
+    "test_malware": 100000,
+    "train_imbalance_ratio": 1.0,
+    "test_imbalance_ratio": 1.0
+  },
+  "feature_quality": {
+    "constant_features": 40,
+    "near_constant_features": 66,
+    "very_sparse_features": 386,
+    "highly_sparse_features": 1067,
+    "features_with_nan": 0,
+    "different_scale_features": 255,
+    "high_outlier_features": 8,
+    "highly_skewed_features": 99,
+    "avg_sparsity": 0.7215407425451491,
+    "avg_variance": 121975871635456.0,
+    "min_value": -4278190080.0,
+    "max_value": 4294967296.0
+  },
+  "correlation_analysis": {
+    "total_features_analyzed": 2341,
+    "high_corr_pairs_count": 4712,
+    "threshold": 0.95,
+    "avg_correlation": 0.030703954824371816,
+    "max_correlation": 1.0,
+    "corr_distribution": {
+      "very_high_>0.95": 4712,
+      "high_0.8-0.95": 2411,
+      "moderate_0.5-0.8": 5658,
+      "low_<0.5": 2726189
+    }
+  },
+  "class_distribution": {},
+  "feature_selection_impact": [
+    {
+      "threshold": 0.9,
+      "features_removed": 211,
+      "features_remaining": 2129,
+      "reduction_pct": 9.017094017094017
+    },
+    {
+      "threshold": 0.95,
+      "features_removed": 172,
+      "features_remaining": 2168,
+      "reduction_pct": 7.350427350427351
+    },
+    {
+      "threshold": 0.98,
+      "features_removed": 142,
+      "features_remaining": 2198,
+      "reduction_pct": 6.068376068376068
+    },
+    {
+      "threshold": 0.99,
+      "features_removed": 132,
+      "features_remaining": 2208,
+      "reduction_pct": 5.641025641025641
+    }
+  ],
+  "feature_importance": {
+    "mi_mean": 0.04975938217761065,
+    "mi_std": 0.07524355841716035,
+    "mi_max": 0.3226587337957594,
+    "mi_min": 0.0,
+    "zero_mi_features": 93,
+    "top_features": [
+      2354,
+      626,
+      2355,
+      786,
+      836,
+      834,
+      784,
+      616,
+      400,
+      509,
+      508,
+      507,
+      510,
+      513,
+      511,
+      368,
+      373,
+      505,
+      1,
+      472,
+      506,
+      504,
+      374,
+      405,
+      501,
+      500,
+      476,
+      375,
+      384,
+      497,
+      468,
+      407,
+      402,
+      401,
+      503,
+      223,
+      416,
+      238,
+      372,
+      406,
+      222,
+      370,
+      404,
+      498,
+      464,
+      499,
+      403,
+      139,
+      386,
+      231
+    ]
+  }
+}

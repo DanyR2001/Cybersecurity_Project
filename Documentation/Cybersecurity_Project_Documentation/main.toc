@@ -1,0 +1,77 @@
+\contentsline {section}{\numberline {1}Introduction}{3}{}%
+\contentsline {subsection}{\numberline {1.1}Context and motivation}{3}{}%
+\contentsline {subsection}{\numberline {1.2}Project objectives}{3}{}%
+\contentsline {subsection}{\numberline {1.3}Working hypothesis: resilience of poisoned samples to misclassification}{4}{}%
+\contentsline {subsection}{\numberline {1.4}Observations: Implications of the “Lottery Ticket Hypothesis” on Backdoor Resilience}{4}{}%
+\contentsline {subsubsection}{\numberline {1.4.1}Resilience of Noise-Scattered Subnetworks}{5}{}%
+\contentsline {subsubsection}{\numberline {1.4.2}Potential Implication for Poisoning Detection}{5}{}%
+\contentsline {section}{\numberline {2}State of the art}{6}{}%
+\contentsline {subsection}{\numberline {2.1}Data Poisoning and Backdoor Attacks in ML Models}{6}{}%
+\contentsline {subsubsection}{\numberline {2.1.1}Clean-label attacks and feature-based backdoors}{6}{}%
+\contentsline {subsection}{\numberline {2.2}Detection and mitigation techniques}{7}{}%
+\contentsline {subsection}{\numberline {2.3}Sparsity and robustness of neural models}{7}{}%
+\contentsline {section}{\numberline {3}Methodology}{8}{}%
+\contentsline {subsection}{\numberline {3.1}Construction of the dataset}{8}{}%
+\contentsline {subsubsection}{\numberline {3.1.1}Poisoned dataset}{8}{}%
+\contentsline {subsubsection}{\numberline {3.1.2}Preprocessing and feature extraction}{8}{}%
+\contentsline {subsection}{\numberline {3.2}Malware classifier architecture}{8}{}%
+\contentsline {subsubsection}{\numberline {3.2.1}Neural networks used}{8}{}%
+\contentsline {subsubsection}{\numberline {3.2.2}Evaluation Metrics}{9}{}%
+\contentsline {paragraph}{Confusion Matrix Components}{9}{}%
+\contentsline {paragraph}{Standard Classification Metrics}{9}{}%
+\contentsline {paragraph}{Threshold-Independent Evaluation}{9}{}%
+\contentsline {subsubsection}{\numberline {3.2.3}Comparison with Baseline Defenses}{9}{}%
+\contentsline {subsection}{\numberline {3.3}Introduction of noise and sparsification}{10}{}%
+\contentsline {subsubsection}{\numberline {3.3.1}Adaptive disturbance of internal weights}{10}{}%
+\contentsline {paragraph}{Automatic tuning algorithm}{10}{}%
+\contentsline {subsubsection}{\numberline {3.3.2}Applying structural pruning techniques}{10}{}%
+\contentsline {paragraph}{Detection via Weight Pruning}{11}{}%
+\contentsline {paragraph}{Defense through Optimal Pruning}{11}{}%
+\contentsline {paragraph}{Displaying results}{12}{}%
+\contentsline {subsection}{\numberline {3.4}Dataset Analysis and Result Visualization}{12}{}%
+\contentsline {subsection}{\numberline {3.5}Single-Run Evaluation Metrics}{12}{}%
+\contentsline {subsubsection}{\numberline {3.5.1}Top Row: Performance Metrics}{13}{}%
+\contentsline {subsubsection}{\numberline {3.5.2}Bottom Row: Confusion Matrices}{13}{}%
+\contentsline {subsubsection}{\numberline {3.5.3}Interpretation Guidelines}{14}{}%
+\contentsline {subsubsection}{\numberline {3.5.4}Other Tools}{14}{}%
+\contentsline {section}{\numberline {4}Dataset Information}{16}{}%
+\contentsline {subsection}{\numberline {4.1}EMBER Dataset Overview}{16}{}%
+\contentsline {subsubsection}{\numberline {4.1.1}Dataset Structure}{16}{}%
+\contentsline {subsubsection}{\numberline {4.1.2}Feature Categories}{17}{}%
+\contentsline {subsection}{\numberline {4.2}Feature Quality Analysis}{17}{}%
+\contentsline {subsection}{\numberline {4.3}Correlation Analysis}{18}{}%
+\contentsline {subsection}{\numberline {4.4}Feature Selection Impact}{18}{}%
+\contentsline {subsection}{\numberline {4.5}Feature Importance Analysis}{19}{}%
+\contentsline {subsection}{\numberline {4.6}Feature Selection Pipeline}{21}{}%
+\contentsline {section}{\numberline {5}Experiments}{21}{}%
+\contentsline {subsection}{\numberline {5.1}Experimental Setup}{21}{}%
+\contentsline {subsubsection}{\numberline {5.1.1}Test Procedures Summary}{21}{}%
+\contentsline {subsection}{\numberline {5.2}Limitations of the experimental setup}{22}{}%
+\contentsline {subsubsection}{\numberline {5.2.1}Data limitations}{22}{}%
+\contentsline {subsubsection}{\numberline {5.2.2}Test limitations}{23}{}%
+\contentsline {section}{\numberline {6}Results}{24}{}%
+\contentsline {subsection}{\numberline {6.1}University cluster}{24}{}%
+\contentsline {subsection}{\numberline {6.2}Model performance - Mac}{24}{}%
+\contentsline {subsubsection}{\numberline {6.2.1}EMBER 2018 dataset}{24}{}%
+\contentsline {subsubsection}{\numberline {6.2.2}Backdoor Attack Effects: The Superfeature Phenomenon}{26}{}%
+\contentsline {subsubsection}{\numberline {6.2.3}Defense Strategy Effectiveness}{26}{}%
+\contentsline {paragraph}{Isolation Forest.}{26}{}%
+\contentsline {paragraph}{Weight Pruning.}{27}{}%
+\contentsline {paragraph}{Gaussian Noise (σ=0.01)}{27}{}%
+\contentsline {paragraph}{Comparative Analysis\\}{27}{}%
+\contentsline {subsection}{\numberline {6.3}Model Performance - University Cluster}{28}{}%
+\contentsline {subsubsection}{\numberline {6.3.1}Enhanced Computational Environment}{28}{}%
+\contentsline {subsubsection}{\numberline {6.3.2}Backdoor Attack Effects: The Superfeature Phenomenon}{29}{}%
+\contentsline {subsubsection}{\numberline {6.3.3}Defense Strategy Effectiveness}{30}{}%
+\contentsline {paragraph}{Isolation Forest.}{30}{}%
+\contentsline {paragraph}{Weight Pruning.}{31}{}%
+\contentsline {paragraph}{Gaussian Noise ($\sigma =0.01$).}{31}{}%
+\contentsline {paragraph}{Comparative Analysis}{32}{}%
+\contentsline {section}{\numberline {7}Conclusions}{32}{}%
+\contentsline {subsection}{\numberline {7.1}Summary of Results}{32}{}%
+\contentsline {subsubsection}{\numberline {7.1.1}Mac-Based Results}{32}{}%
+\contentsline {subsubsection}{\numberline {7.1.2}University Cluster Results}{33}{}%
+\contentsline {subsection}{\numberline {7.2}Comparison of Results Across Computational Environments}{33}{}%
+\contentsline {subsubsection}{\numberline {7.2.1}Convergence vs Performance Trade-offs}{33}{}%
+\contentsline {subsubsection}{\numberline {7.2.2}Computational Efficiency Implications}{34}{}%
+\contentsline {subsubsection}{\numberline {7.2.3}Model Capacity and Backdoor Resilience}{34}{}%
