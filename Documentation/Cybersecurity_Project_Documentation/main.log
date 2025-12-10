@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.12.9)  9 DEC 2025 19:56
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.12.9)  10 DEC 2025 17:20
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -882,7 +882,14 @@ Package: float 2001/11/08 v1.3d Float enhancements (AL)
 )
 \@quotelevel=\count430
 \@quotereset=\count431
- (./main.aux)
+ (./main.aux
+
+LaTeX Warning: Label `tab:accuracy_variation_pct' multiply defined.
+
+
+LaTeX Warning: Label `tab:f1_variation_pct' multiply defined.
+
+)
 \openout1 = `main.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 22.
@@ -902,8 +909,7 @@ LaTeX Font Info:    ... okay on input line 22.
 LaTeX Font Info:    Checking defaults for LGR/cmr/m/n on input line 22.
 LaTeX Font Info:    Trying to load font information for LGR+cmr on input line 2
 2.
-
-(/usr/local/texlive/2025/texmf-dist/tex/latex/cbfonts-fd/lgrcmr.fd
+ (/usr/local/texlive/2025/texmf-dist/tex/latex/cbfonts-fd/lgrcmr.fd
 File: lgrcmr.fd 2017/07/29 v1.2 Greek European Computer Regular
 )
 LaTeX Font Info:    ... okay on input line 22.
@@ -1071,7 +1077,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 405--411
 [13 <./Image/backdoor_comparison_enhanced.png>]
 Overfull \hbox (6.74216pt too wide) in paragraph at lines 424--430
 []\OT1/cmr/m/n/10 All anal-y-sis out-puts are saved to a ded-i-cated di-rec-tor
-y (\OT1/cmtt/m/n/10 Results/embre2018/dataset[]analysis/\OT1/cmr/m/n/10 ),
+y (\OT1/cmtt/m/n/10 Results/ember2018/dataset[]analysis/\OT1/cmr/m/n/10 ),
  []
 
 
@@ -1201,13 +1207,7 @@ _f1.png> <./Image/mac/8_defense_accuracy_detailed.png> <./Image/mac/8bis_defens
 e_f1_detailed.png>]
 
 [25]
-Overfull \hbox (0.81415pt too wide) in paragraph at lines 825--826
-[]\OT1/cmr/m/n/10 Figure  8[]'s or-ange bars for Weight Prun-ing show pre-dom-i
--nantly neg-a-tive vari-a-tions, with P3[]T16's
- []
-
-
-Overfull \hbox (11.18626pt too wide) in paragraph at lines 853--854
+Overfull \hbox (11.18626pt too wide) in paragraph at lines 850--851
 \OT1/cmr/m/n/10 The ex-per-i-men-tal re-sults pre-sented in this sec-tion were 
 ob-tained us-ing the uni-ver-sity's high-performance
  []
@@ -1215,59 +1215,53 @@ ob-tained us-ing the uni-ver-sity's high-performance
 
 
 [26]
-<Image/cluster/2_stealthiness.png, id=131, 855.49612pt x 566.23544pt>
+<Image/cluster/2_stealthiness.png, id=130, 855.49612pt x 566.23544pt>
 File: Image/cluster/2_stealthiness.png Graphic file (type png)
 <use Image/cluster/2_stealthiness.png>
-Package pdftex.def Info: Image/cluster/2_stealthiness.png  used on input line 8
-73.
+Package pdftex.def Info: Image/cluster/2_stealthiness.png  used on input line 9
+26.
 (pdftex.def)             Requested size: 203.80193pt x 134.8884pt.
-<Image/cluster/2bis_stealthiness_f1.png, id=132, 855.49612pt x 566.23544pt>
+<Image/cluster/2bis_stealthiness_f1.png, id=131, 855.49612pt x 566.23544pt>
 File: Image/cluster/2bis_stealthiness_f1.png Graphic file (type png)
 <use Image/cluster/2bis_stealthiness_f1.png>
 Package pdftex.def Info: Image/cluster/2bis_stealthiness_f1.png  used on input 
-line 879.
+line 932.
 (pdftex.def)             Requested size: 203.80193pt x 134.8884pt.
-<Image/cluster/3_defense_variation_accuracy.png, id=133, 856.6404pt x 493.845pt
+<Image/cluster/3_defense_variation_accuracy.png, id=132, 856.6404pt x 493.845pt
 >
 File: Image/cluster/3_defense_variation_accuracy.png Graphic file (type png)
 <use Image/cluster/3_defense_variation_accuracy.png>
 Package pdftex.def Info: Image/cluster/3_defense_variation_accuracy.png  used o
-n input line 888.
+n input line 941.
 (pdftex.def)             Requested size: 203.80193pt x 117.48532pt.
-<Image/cluster/3bis_defense_variation_f1.png, id=134, 856.6404pt x 494.0859pt>
+<Image/cluster/3bis_defense_variation_f1.png, id=133, 856.6404pt x 494.0859pt>
 File: Image/cluster/3bis_defense_variation_f1.png Graphic file (type png)
 <use Image/cluster/3bis_defense_variation_f1.png>
 Package pdftex.def Info: Image/cluster/3bis_defense_variation_f1.png  used on i
-nput line 894.
+nput line 947.
 (pdftex.def)             Requested size: 203.80193pt x 117.54263pt.
-<Image/cluster/8_defense_accuracy_detailed.png, id=135, 1289.5377pt x 422.0568p
+<Image/cluster/8_defense_accuracy_detailed.png, id=134, 1289.5377pt x 422.0568p
 t>
 File: Image/cluster/8_defense_accuracy_detailed.png Graphic file (type png)
 <use Image/cluster/8_defense_accuracy_detailed.png>
 Package pdftex.def Info: Image/cluster/8_defense_accuracy_detailed.png  used on
- input line 903.
+ input line 956.
 (pdftex.def)             Requested size: 203.80193pt x 66.69969pt.
-<Image/cluster/8bis_defense_f1_detailed.png, id=136, 1289.0559pt x 422.0568pt>
+<Image/cluster/8bis_defense_f1_detailed.png, id=135, 1289.0559pt x 422.0568pt>
 File: Image/cluster/8bis_defense_f1_detailed.png Graphic file (type png)
 <use Image/cluster/8bis_defense_f1_detailed.png>
 Package pdftex.def Info: Image/cluster/8bis_defense_f1_detailed.png  used on in
-put line 909.
+put line 962.
 (pdftex.def)             Requested size: 203.80193pt x 66.72545pt.
 
 
 [27]
-Overfull \hbox (4.2923pt too wide) in paragraph at lines 920--921
-[]\OT1/cmr/bx/n/10 Small Trig-gers (16 fea-tures)\OT1/cmr/m/n/10 : The 3% poi-s
-on rate achieves re-mark-able im-prove-ment (+6.92%
- []
-
-
 
 [28 <./Image/cluster/2_stealthiness.png> <./Image/cluster/2bis_stealthiness_f1.
 png> <./Image/cluster/3_defense_variation_accuracy.png> <./Image/cluster/3bis_d
 efense_variation_f1.png> <./Image/cluster/8_defense_accuracy_detailed.png> <./I
 mage/cluster/8bis_defense_f1_detailed.png>]
-Overfull \hbox (8.99402pt too wide) in paragraph at lines 927--928
+Overfull \hbox (8.99402pt too wide) in paragraph at lines 981--982
  \OT1/cmr/bx/n/10 Iso-la-tion For-est.[] \OT1/cmr/m/n/10 Emerges as the sole vi
 -able de-fense across clus-ter con-fig-u-ra-tions, with optimization-
  []
@@ -1275,48 +1269,44 @@ Overfull \hbox (8.99402pt too wide) in paragraph at lines 927--928
 
 
 [29]
-Overfull \hbox (1.60622pt too wide) in paragraph at lines 940--941
+Overfull \hbox (0.1939pt too wide) in paragraph at lines 992--993
+[]\OT1/cmr/bx/n/10 Extreme F1 Col-lapse\OT1/cmr/m/n/10 : Dis-pro-por-tion-ate F
+1-score degra-da-tion vastly ex-ceeds ac-cu-racy losses,
+ []
+
+
+Overfull \hbox (1.60622pt too wide) in paragraph at lines 995--996
 []\OT1/cmr/bx/n/10 Class Col-lapse Be-hav-ior\OT1/cmr/m/n/10 : Post-pruning con
 -fu-sion ma-tri-ces re-veal de-gen-er-ate de-ci-sion bound-
  []
 
 
-Overfull \hbox (2.10304pt too wide) in paragraph at lines 942--943
-\OT1/cmr/m/n/10 fun-da-men-tally fails be-cause back-door neu-rons don't con-ce
-n-trate in small-magnitude weights|cluster-
- []
-
-
 
 [30]
-Overfull \hbox (4.71419pt too wide) in paragraph at lines 955--956
-\OT1/cmr/m/n/10 pre-hen-sive prun-ing strat-egy eval-u-a-tion (struc-tured, un-
-struc-tured, gradient-weighted, activation-
- []
-
-
 
 [31]
 
 [32]
 
-[33]
-
-[34] (./main.aux)
+[33] (./main.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
  ***********
+
+
+LaTeX Warning: There were multiply-defined labels.
+
 Package logreq Info: Writing requests to 'main.run.xml'.
 \openout1 = `main.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 15902 strings out of 473190
- 288763 string characters out of 5715800
- 1103340 words of memory out of 5000000
- 38991 multiletter control sequences out of 15000+600000
- 571086 words of font info for 80 fonts, out of 8000000 for 9000
+ 15900 strings out of 473190
+ 288740 string characters out of 5715800
+ 1103379 words of memory out of 5000000
+ 38990 multiletter control sequences out of 15000+600000
+ 570387 words of font info for 79 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  67i,10n,81p,981b,1280s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
@@ -1339,12 +1329,11 @@ exmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/texlive/2025/tex
 mf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/2025/texm
 f-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2025/texmf
 -dist/fonts/type1/public/cbfonts/grmn1000.pfb></usr/local/texlive/2025/texmf-di
-st/fonts/type1/public/cbfonts/grxn1000.pfb></usr/local/texlive/2025/texmf-dist/
-fonts/type1/public/cm-super/sfrm1000.pfb>
-Output written on main.pdf (34 pages, 6516897 bytes).
+st/fonts/type1/public/cm-super/sfrm1000.pfb>
+Output written on main.pdf (33 pages, 6503036 bytes).
 PDF statistics:
- 262 PDF objects out of 1000 (max. 8388607)
- 144 compressed objects within 2 object streams
+ 254 PDF objects out of 1000 (max. 8388607)
+ 139 compressed objects within 2 object streams
  0 named destinations out of 1000 (max. 500000)
  91 words of extra memory for PDF output out of 10000 (max. 10000000)
 

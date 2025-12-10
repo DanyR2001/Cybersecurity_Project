@@ -56,17 +56,17 @@
 \contentsline {subsubsection}{\numberline {6.2.3}Defense Strategy Effectiveness}{25}{}%
 \contentsline {paragraph}{Isolation Forest.}{25}{}%
 \contentsline {paragraph}{Weight Pruning.}{26}{}%
-\contentsline {paragraph}{Gaussian Noise (σ=0.01)}{26}{}%
-\contentsline {paragraph}{Comparative Analysis\\}{26}{}%
+\contentsline {paragraph}{Gaussian Noise.}{26}{}%
+\contentsline {paragraph}{Comparative Analysis.}{26}{}%
 \contentsline {subsection}{\numberline {6.3}Model Performance - University Cluster}{27}{}%
 \contentsline {subsubsection}{\numberline {6.3.1}Enhanced Computational Environment}{27}{}%
 \contentsline {subsubsection}{\numberline {6.3.2}Backdoor Attack Effects: Divergent Performance Patterns}{28}{}%
 \contentsline {subsubsection}{\numberline {6.3.3}Defense Strategy Effectiveness}{29}{}%
 \contentsline {paragraph}{Isolation Forest.}{29}{}%
 \contentsline {paragraph}{Weight Pruning.}{30}{}%
-\contentsline {paragraph}{Gaussian Noise.}{31}{}%
+\contentsline {paragraph}{Gaussian Noise.}{30}{}%
 \contentsline {paragraph}{Comparative Analysis}{31}{}%
-\contentsline {subsection}{\numberline {6.4}Comparison of Results Across Computational Environments}{32}{}%
-\contentsline {subsubsection}{\numberline {6.4.1}Divergent Attack Impact Patterns}{32}{}%
+\contentsline {subsection}{\numberline {6.4}Comparison of Results Across Computational Environments}{31}{}%
+\contentsline {subsubsection}{\numberline {6.4.1}Divergent Attack Impact Patterns}{31}{}%
 \contentsline {subsubsection}{\numberline {6.4.2}Consistent Defense Effectiveness Limits}{32}{}%
-\contentsline {subsubsection}{\numberline {6.4.3}Computational Resource Implications}{33}{}%
+\contentsline {subsubsection}{\numberline {6.4.3}Computational Resource Implications}{32}{}%
