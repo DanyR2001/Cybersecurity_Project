@@ -29,49 +29,44 @@
 \contentsline {paragraph}{Defense through Optimal Pruning}{11}{}%
 \contentsline {paragraph}{Displaying results}{12}{}%
 \contentsline {subsection}{\numberline {3.4}Dataset Analysis and Result Visualization}{12}{}%
-\contentsline {subsection}{\numberline {3.5}Single-Run Evaluation Metrics}{12}{}%
-\contentsline {subsubsection}{\numberline {3.5.1}Top Row: Performance Metrics}{13}{}%
-\contentsline {subsubsection}{\numberline {3.5.2}Bottom Row: Confusion Matrices}{13}{}%
-\contentsline {subsubsection}{\numberline {3.5.3}Interpretation Guidelines}{14}{}%
-\contentsline {subsubsection}{\numberline {3.5.4}Other Tools}{14}{}%
+\contentsline {subsubsection}{\numberline {3.4.1}Single-Run Evaluation Metrics}{12}{}%
+\contentsline {paragraph}{Top Row: Performance Metrics. }{13}{}%
+\contentsline {paragraph}{Bottom Row: Confusion Matrices. }{13}{}%
+\contentsline {subsubsection}{\numberline {3.4.2}Other Tools}{13}{}%
 \contentsline {section}{\numberline {4}Dataset Information}{16}{}%
 \contentsline {subsection}{\numberline {4.1}EMBER Dataset Overview}{16}{}%
 \contentsline {subsubsection}{\numberline {4.1.1}Dataset Structure}{16}{}%
-\contentsline {subsubsection}{\numberline {4.1.2}Feature Categories}{17}{}%
+\contentsline {subsubsection}{\numberline {4.1.2}Feature Categories}{16}{}%
 \contentsline {subsection}{\numberline {4.2}Feature Quality Analysis}{17}{}%
-\contentsline {subsection}{\numberline {4.3}Correlation Analysis}{18}{}%
-\contentsline {subsection}{\numberline {4.4}Feature Selection Impact}{18}{}%
-\contentsline {subsection}{\numberline {4.5}Feature Importance Analysis}{19}{}%
-\contentsline {subsection}{\numberline {4.6}Feature Selection Pipeline}{21}{}%
+\contentsline {subsection}{\numberline {4.3}Correlation Analysis}{17}{}%
+\contentsline {subsection}{\numberline {4.4}Feature Selection Impact}{17}{}%
+\contentsline {subsection}{\numberline {4.5}Feature Importance Analysis}{18}{}%
+\contentsline {subsection}{\numberline {4.6}Feature Selection Pipeline}{19}{}%
 \contentsline {section}{\numberline {5}Experiments}{21}{}%
 \contentsline {subsection}{\numberline {5.1}Experimental Setup}{21}{}%
 \contentsline {subsubsection}{\numberline {5.1.1}Test Procedures Summary}{21}{}%
 \contentsline {subsection}{\numberline {5.2}Limitations of the experimental setup}{22}{}%
 \contentsline {subsubsection}{\numberline {5.2.1}Data limitations}{22}{}%
-\contentsline {subsubsection}{\numberline {5.2.2}Test limitations}{23}{}%
-\contentsline {section}{\numberline {6}Results}{24}{}%
-\contentsline {subsection}{\numberline {6.1}University cluster}{24}{}%
-\contentsline {subsection}{\numberline {6.2}Model performance - Mac}{24}{}%
-\contentsline {subsubsection}{\numberline {6.2.1}EMBER 2018 dataset}{24}{}%
-\contentsline {subsubsection}{\numberline {6.2.2}Backdoor Attack Effects: The Superfeature Phenomenon}{26}{}%
-\contentsline {subsubsection}{\numberline {6.2.3}Defense Strategy Effectiveness}{26}{}%
-\contentsline {paragraph}{Isolation Forest.}{26}{}%
-\contentsline {paragraph}{Weight Pruning.}{27}{}%
-\contentsline {paragraph}{Gaussian Noise (σ=0.01)}{27}{}%
-\contentsline {paragraph}{Comparative Analysis\\}{27}{}%
-\contentsline {subsection}{\numberline {6.3}Model Performance - University Cluster}{28}{}%
-\contentsline {subsubsection}{\numberline {6.3.1}Enhanced Computational Environment}{28}{}%
-\contentsline {subsubsection}{\numberline {6.3.2}Backdoor Attack Effects: The Superfeature Phenomenon}{29}{}%
-\contentsline {subsubsection}{\numberline {6.3.3}Defense Strategy Effectiveness}{30}{}%
-\contentsline {paragraph}{Isolation Forest.}{30}{}%
-\contentsline {paragraph}{Weight Pruning.}{31}{}%
-\contentsline {paragraph}{Gaussian Noise ($\sigma =0.01$).}{31}{}%
-\contentsline {paragraph}{Comparative Analysis}{32}{}%
-\contentsline {section}{\numberline {7}Conclusions}{32}{}%
-\contentsline {subsection}{\numberline {7.1}Summary of Results}{32}{}%
-\contentsline {subsubsection}{\numberline {7.1.1}Mac-Based Results}{32}{}%
-\contentsline {subsubsection}{\numberline {7.1.2}University Cluster Results}{33}{}%
-\contentsline {subsection}{\numberline {7.2}Comparison of Results Across Computational Environments}{33}{}%
-\contentsline {subsubsection}{\numberline {7.2.1}Convergence vs Performance Trade-offs}{33}{}%
-\contentsline {subsubsection}{\numberline {7.2.2}Computational Efficiency Implications}{34}{}%
-\contentsline {subsubsection}{\numberline {7.2.3}Model Capacity and Backdoor Resilience}{34}{}%
+\contentsline {subsubsection}{\numberline {5.2.2}Test limitations}{22}{}%
+\contentsline {section}{\numberline {6}Results}{23}{}%
+\contentsline {subsection}{\numberline {6.1}University cluster}{23}{}%
+\contentsline {subsection}{\numberline {6.2}Model performance - Mac}{23}{}%
+\contentsline {subsubsection}{\numberline {6.2.1}EMBER 2018 dataset}{23}{}%
+\contentsline {subsubsection}{\numberline {6.2.2}Backdoor Attack Effects: The Superfeature Phenomenon}{25}{}%
+\contentsline {subsubsection}{\numberline {6.2.3}Defense Strategy Effectiveness}{25}{}%
+\contentsline {paragraph}{Isolation Forest.}{25}{}%
+\contentsline {paragraph}{Weight Pruning.}{26}{}%
+\contentsline {paragraph}{Gaussian Noise (σ=0.01)}{26}{}%
+\contentsline {paragraph}{Comparative Analysis\\}{26}{}%
+\contentsline {subsection}{\numberline {6.3}Model Performance - University Cluster}{27}{}%
+\contentsline {subsubsection}{\numberline {6.3.1}Enhanced Computational Environment}{27}{}%
+\contentsline {subsubsection}{\numberline {6.3.2}Backdoor Attack Effects: Divergent Performance Patterns}{28}{}%
+\contentsline {subsubsection}{\numberline {6.3.3}Defense Strategy Effectiveness}{29}{}%
+\contentsline {paragraph}{Isolation Forest.}{29}{}%
+\contentsline {paragraph}{Weight Pruning.}{30}{}%
+\contentsline {paragraph}{Gaussian Noise.}{31}{}%
+\contentsline {paragraph}{Comparative Analysis}{31}{}%
+\contentsline {subsection}{\numberline {6.4}Comparison of Results Across Computational Environments}{32}{}%
+\contentsline {subsubsection}{\numberline {6.4.1}Divergent Attack Impact Patterns}{32}{}%
+\contentsline {subsubsection}{\numberline {6.4.2}Consistent Defense Effectiveness Limits}{32}{}%
+\contentsline {subsubsection}{\numberline {6.4.3}Computational Resource Implications}{33}{}%

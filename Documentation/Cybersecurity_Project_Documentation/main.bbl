@@ -1,0 +1,164 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{nty/global//global/global/global}
+    \entry{severi2021explanation}{article}{}{}
+      \name{author}{4}{}{%
+        {{hash=60b43e7363c76f8ffff7e608cc1d48d5}{%
+           family={Severi},
+           familyi={S\bibinitperiod},
+           given={Gianluca},
+           giveni={G\bibinitperiod}}}%
+        {{hash=80cd1df4f6f15a9f4657548c49a3b0c0}{%
+           family={Meyer},
+           familyi={M\bibinitperiod},
+           given={Jacob},
+           giveni={J\bibinitperiod}}}%
+        {{hash=150d7983e0d68e79ba900317a5f2aae0}{%
+           family={Coull},
+           familyi={C\bibinitperiod},
+           given={Scott},
+           giveni={S\bibinitperiod}}}%
+        {{hash=521fcb5635d3f86a1e771877c4a0fc43}{%
+           family={Oprea},
+           familyi={O\bibinitperiod},
+           given={Alina},
+           giveni={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{823aace671fd65e14d810c748daef288}
+      \strng{fullhash}{c63953731bf9b45951b4371160d1195d}
+      \strng{fullhashraw}{c63953731bf9b45951b4371160d1195d}
+      \strng{bibnamehash}{823aace671fd65e14d810c748daef288}
+      \strng{authorbibnamehash}{823aace671fd65e14d810c748daef288}
+      \strng{authornamehash}{823aace671fd65e14d810c748daef288}
+      \strng{authorfullhash}{c63953731bf9b45951b4371160d1195d}
+      \strng{authorfullhashraw}{c63953731bf9b45951b4371160d1195d}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{arXiv preprint arXiv:2003.01031}
+      \field{title}{Explanation-Guided Backdoor Poisoning Attacks Against Malware Classifiers}
+      \field{year}{2021}
+    \endentry
+    \entry{NEURIPS2018_22722a34}{inproceedings}{}{}
+      \name{author}{7}{}{%
+        {{hash=6670caf6b6cca50acb7430554817db1d}{%
+           family={Shafahi},
+           familyi={S\bibinitperiod},
+           given={Ali},
+           giveni={A\bibinitperiod}}}%
+        {{hash=c23de70107007808aaf9b23b17481fee}{%
+           family={Huang},
+           familyi={H\bibinitperiod},
+           given={W.\bibnamedelimi Ronny},
+           giveni={W\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+        {{hash=87cde9972fb3ceaaada8ee6319d77832}{%
+           family={Najibi},
+           familyi={N\bibinitperiod},
+           given={Mahyar},
+           giveni={M\bibinitperiod}}}%
+        {{hash=88b699cb33b744b2ba99665267f335f8}{%
+           family={Suciu},
+           familyi={S\bibinitperiod},
+           given={Octavian},
+           giveni={O\bibinitperiod}}}%
+        {{hash=45fe5ab966df2ae2a98ac0437e84e46f}{%
+           family={Studer},
+           familyi={S\bibinitperiod},
+           given={Christoph},
+           giveni={C\bibinitperiod}}}%
+        {{hash=f527bef12a2d794d6918be00878b605b}{%
+           family={Dumitras},
+           familyi={D\bibinitperiod},
+           given={Tudor},
+           giveni={T\bibinitperiod}}}%
+        {{hash=3b1fea9d27f10122cd27336b3dc68ea7}{%
+           family={Goldstein},
+           familyi={G\bibinitperiod},
+           given={Tom},
+           giveni={T\bibinitperiod}}}%
+      }
+      \name{editor}{6}{}{%
+        {{hash=9b411b6c9cefdde16ffea77ecf612142}{%
+           family={Bengio},
+           familyi={B\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+        {{hash=1444141e07dd9549dbb4b8530fe4ec15}{%
+           family={Wallach},
+           familyi={W\bibinitperiod},
+           given={H.},
+           giveni={H\bibinitperiod}}}%
+        {{hash=6c15b92d4ebdbfae091f6548dc7543ae}{%
+           family={Larochelle},
+           familyi={L\bibinitperiod},
+           given={H.},
+           giveni={H\bibinitperiod}}}%
+        {{hash=4f2317ca7fb46f798c6c220e39e332a0}{%
+           family={Grauman},
+           familyi={G\bibinitperiod},
+           given={K.},
+           giveni={K\bibinitperiod}}}%
+        {{hash=9bc86e7523b9aaf7183c5f7e7634048f}{%
+           family={Cesa-Bianchi},
+           familyi={C\bibinithyphendelim B\bibinitperiod},
+           given={N.},
+           giveni={N\bibinitperiod}}}%
+        {{hash=36b98b7ab533936cf1b5716148de704f}{%
+           family={Garnett},
+           familyi={G\bibinitperiod},
+           given={R.},
+           giveni={R\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Curran Associates, Inc.}%
+      }
+      \strng{namehash}{425b7e23880a3a95ce6005b93f98c2b1}
+      \strng{fullhash}{5a4ff882473c777fbbefebaea03e277c}
+      \strng{fullhashraw}{5a4ff882473c777fbbefebaea03e277c}
+      \strng{bibnamehash}{425b7e23880a3a95ce6005b93f98c2b1}
+      \strng{authorbibnamehash}{425b7e23880a3a95ce6005b93f98c2b1}
+      \strng{authornamehash}{425b7e23880a3a95ce6005b93f98c2b1}
+      \strng{authorfullhash}{5a4ff882473c777fbbefebaea03e277c}
+      \strng{authorfullhashraw}{5a4ff882473c777fbbefebaea03e277c}
+      \strng{editorbibnamehash}{233f4c9ba2f85af3db1eed171136508c}
+      \strng{editornamehash}{233f4c9ba2f85af3db1eed171136508c}
+      \strng{editorfullhash}{f08403ac24c2e0a0ae72822c0c0afda6}
+      \strng{editorfullhashraw}{f08403ac24c2e0a0ae72822c0c0afda6}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Advances in Neural Information Processing Systems}
+      \field{title}{Poison Frogs! Targeted Clean-Label Poisoning Attacks on Neural Networks}
+      \field{volume}{31}
+      \field{year}{2018}
+      \verb{urlraw}
+      \verb https://proceedings.neurips.cc/paper_files/paper/2018/file/22722a343513ed45f14905eb07621686-Paper.pdf
+      \endverb
+      \verb{url}
+      \verb https://proceedings.neurips.cc/paper_files/paper/2018/file/22722a343513ed45f14905eb07621686-Paper.pdf
+      \endverb
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+
