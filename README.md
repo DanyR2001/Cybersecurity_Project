@@ -35,8 +35,11 @@ This project implements a comprehensive backdoor attack and defense system for m
 │   │   └── diagnostic.py               # Dataset validation tool
 │   ├── utils/
 │   │   ├── metrics.py                  # Performance metrics
-│   │   ├── visualization.py            # Plotting functions
-│   │   ├── result_analysis.py          # Comparison plotting functions of all the tests
+│   │   ├── visualization.py            # Basic plotting functions
+│   │   ├── result_analysis.py          # Advanced cross-experiment analysis
+│   │   ├── gaussian_noise_analysis.py  # Gaussian noise defense analysis
+│   │   ├── pruning_analysis.py         # Pruning defense analysis
+│   │   ├── dataset_analysis.py         # Dataset quality analysis
 │   │   ├── backdoor_metrics.py         # Attack-specific metrics
 │   │   └── io_utils.py                 # I/O utilities
 │   └── experiment/
@@ -49,25 +52,52 @@ This project implements a comprehensive backdoor attack and defense system for m
 │   ├── ember/                          # Official EMBER repo
 │   └── MalwareBackdoors/               # Poisoning reference code
 │
-├── Bibliography/                       # All the paper used for the project
+├── Bibliography/                        # All papers used for the project
 │     
-├── Documentation/                      # Latex file and pdf of the documentation
+├── Documentation/                       # Latex files and PDF documentation
 │   
-├── Result/                             # All the result of different run
-│   ├── analysis_plots/                 # All comparison plots of differte test 
-│   └── ember2018/                      # Dataset name
-│       ├── poison rate 1%              # Poison percentage of the attack
-│       │   ├── triggersize16           # Different triggersize
-│       │   ├── triggersize32
-│       │   ├── triggersize64
-│       │   └── triggersize128
-│       └── poison rate 3%              # Poison percentage of the attack
-│           ├── triggersize16           # Different triggersize
-│           ├── triggersize32
-│           ├── triggersize64
-│           └── triggersize128
-│
-├── Presentation/                       # Powerpoint presentation of the project
+├── Results/                             # All results from different runs
+│   ├── ember2018 - mac/                # Mac environment results
+│   │   ├── poison rate 1%              
+│   │   │   ├── triggersize16           
+│   │   │   │   ├── backdoor_experiment_results.json
+│   │   │   │   ├── backdoor_comparison_plot.png
+│   │   │   │   ├── pruning_analysis_with_baseline.png
+│   │   │   │   └── gaussian_noise_analysis.png
+│   │   │   ├── triggersize32
+│   │   │   ├── triggersize48
+│   │   │   ├── triggersize64
+│   │   │   └── triggersize128
+│   │   ├── poison rate 3%              
+│   │   │   ├── triggersize16 - 128 (same structure as above)
+│   │   │   └── ...
+│   │   └── analysis_plots/             # Cross-experiment comparison plots
+│   │       ├── summary_table.csv
+│   │       ├── comprehensive_results.csv
+│   │       ├── defense_comparison_table.csv
+│   │       ├── best_configurations.csv
+│   │       ├── 1_danger_heatmap.png
+│   │       ├── 2_stealthiness.png
+│   │       ├── 3_defense_variation_accuracy.png
+│   │       ├── 4_tradeoff_final.png
+│   │       ├── 5-14_[various_analysis].png
+│   │       ├── pruning_trigger_size_comparison_with_baseline.png
+│   │       ├── pruning_poison_rate_comparison_with_baseline.png
+│   │       ├── gaussian_noise_comparative_analysis.png
+│   │       └── poison_rate_comparison_trigger*.png
+│   │   
+│   │
+│   └── ember2018 - cluster/            # Cluster environment results
+│   |   └── [same structure as mac]
+│   │ 
+|   └── dataset_analysis/           # Dataset quality analysis
+│           ├── dataset_analysis_report.json
+│           ├── ANALYSIS_SUMMARY.md
+│           ├── correlation_analysis.png
+│           ├── feature_importance.png
+│           └── feature_selection_impact.png
+|
+├── Presentation/                        # PowerPoint presentation
 │     
 ├── setup.sh                            # Complete setup script
 ├── activate_ember.sh                   # Environment activation
@@ -162,6 +192,86 @@ Eseguire Isolation Forest defense (paper baseline)? (Y/n):
 Eseguire Weight Pruning defense (your method)? (Y/n):
 Eseguire Gaussian Noise defense (your method)? (Y/n):
 ```
+
+### Step 4: Dataset Quality Analysis (Optional)
+Analyze the EMBER dataset quality and characteristics:
+```bash
+cd Code/utils
+python dataset_analysis.py ../../dataset/ember_dataset_2018_2
+```
+
+**What this does:**
+- Basic statistics (samples, features, class distribution)
+- Feature quality analysis (constant, sparse, NaN features)
+- Correlation analysis with heatmaps
+- Feature importance via Mutual Information
+- Feature selection impact simulation
+- Generates comprehensive report and visualizations
+
+**Output location:**
+```
+Results/ember2018/dataset_analysis/
+  ├── dataset_analysis_report.json      # Complete analysis data
+  ├── ANALYSIS_SUMMARY.md               # Human-readable summary
+  ├── correlation_analysis.png          # Correlation heatmap
+  ├── feature_importance.png            # MI analysis
+  └── feature_selection_impact.png      # Selection simulation
+```
+
+### Step 5: Cross-Experiment Analysis
+After running multiple experiments with different configurations, generate comparative analysis:
+```bash
+cd Code/utils
+python result_analysis.py
+```
+
+**What this does:**
+- Loads all experiment results from `Results/` directory
+- Generates comprehensive comparison tables (CSV)
+- Creates 14+ advanced visualization plots
+- Identifies best configurations
+- Performs statistical analysis
+
+**Output location:**
+```
+Results/ember2018 - [mac|cluster]/analysis_plots/
+  ├── summary_table.csv                 # Quick overview
+  ├── comprehensive_results.csv         # Full metrics with deltas
+  ├── defense_comparison_table.csv      # Defense effectiveness
+  ├── best_configurations.csv           # Optimal configs
+  ├── 1_danger_heatmap.png             # Real attack danger
+  ├── 2_stealthiness.png               # Attack stealth analysis
+  ├── 3_defense_variation_*.png        # Defense effectiveness
+  ├── 4_tradeoff_final.png             # Attack trade-offs
+  ├── 5-14_*.png                       # Additional analyses
+  └── [defense-specific plots]
+```
+
+### Step 6: Defense-Specific Analysis
+Gaussian Noise Analysis
+``` bash
+cd Code/utils
+python gaussian_noise_analysis.py
+```
+
+Generates:
+- Individual plots for each configuration (in experiment folders)
+- Comparative plots across trigger sizes
+- Poison rate comparison (1% vs 3%)
+- Saved in respective triggersize* folders and analysis_plots/
+
+### Step 7: Pruning Defense Analysis
+```bash
+cd Code/utils
+python pruning_analysis.py
+```
+Generates:
+- Individual pruning analysis with baseline comparison
+- Trigger size comparison plots
+- Poison rate comparison plots
+- All saved in respective folders and analysis_plots/
+
+
 
 ---
 
@@ -260,6 +370,60 @@ pruning_detection_results.png      # Detection analysis
 isolation_forest_detection.png     # IsoForest detection
 experiment_config.json             # Saved configuration
 selected_features.json             # Feature selection info
+```
+
+### Cross-Experiment Analysis Files
+
+Generated in `Results/ember2018 - [environment]/analysis_plots/`:
+
+**CSV Tables:**
+```
+summary_table.csv                  # Quick metrics overview
+comprehensive_results.csv          # Full metrics with Δ and Variation%
+defense_comparison_table.csv       # Defense effectiveness comparison
+best_configurations.csv            # Optimal configuration recommendations
+```
+
+**Visualization Categories:**
+
+1. **Attack Analysis (Plots 1-4):**
+   - `1_danger_heatmap.png`: Real backdoor danger by configuration
+   - `2_stealthiness.png`: Attack stealth (accuracy change)
+   - `2bis_stealthiness_f1.png`: F1-score stealth analysis
+   - `4_tradeoff_final.png`: Stealth vs danger trade-off
+
+2. **Defense Analysis (Plots 3, 5-8):**
+   - `3_defense_variation_accuracy.png`: Defense vs backdoor (accuracy)
+   - `3bis_defense_variation_f1.png`: Defense vs backdoor (F1)
+   - `5_f1_comparison.png`: F1 across all models
+   - `6_metrics_heatmaps.png`: Multi-metric heatmaps
+   - `8_defense_accuracy_detailed.png`: Detailed defense comparison
+   - `8bis_defense_f1_detailed.png`: F1 defense comparison
+
+3. **Advanced Analysis (Plots 7-14):**
+   - `7_asr_by_config.png`: Attack success rate trends
+   - `9_attack_effectiveness_quadrant.png`: ASR vs accuracy drop
+   - `10_metrics_by_triggersize.png`: Metrics by trigger size
+   - `11_roc_curves_comparison.png`: ROC analysis
+   - `12_boxplots_by_poison_rate.png`: Distribution by poison rate
+   - `13_boxplots_by_trigger_size.png`: Distribution by trigger size
+   - `14_violin_defense_recovery.png`: Recovery distribution
+
+4. **Defense-Specific Plots:**
+   - `pruning_trigger_size_comparison_with_baseline.png`
+   - `pruning_poison_rate_comparison_with_baseline.png`
+   - `gaussian_noise_comparative_analysis.png`
+   - `poison_rate_comparison_trigger[16|32|48|64|128].png`
+
+### Dataset Analysis Files
+
+Generated in `Results/ember2018/dataset_analysis/`:
+```
+dataset_analysis_report.json       # Complete analysis (JSON)
+ANALYSIS_SUMMARY.md                # Human-readable summary
+correlation_analysis.png           # Correlation heatmap + distribution
+feature_importance.png             # MI scores + cumulative importance
+feature_selection_impact.png       # Impact of different thresholds
 ```
 
 ### Key Metrics
@@ -550,5 +714,9 @@ For issues and questions:
 
 ---
 
-**Last Updated**: November 2024  
+# Contrinutor:
+- Daniele Russo - mat.0001186664
+- Nicola Modugno - mat.0001176883
+
+**Last Updated**: 11 December 2025
 **Compatible With**: EMBER 2018 v2, Python 3.9+, PyTorch 1.9+
