@@ -194,7 +194,7 @@ Eseguire Gaussian Noise defense (your method)? (Y/n):
 ```
 
 
-### Step 4: Dataset Quality Analysis
+### Step 4: Dataset Quality Analysis
 
 Analyze the EMBER dataset quality and characteristics:
 
