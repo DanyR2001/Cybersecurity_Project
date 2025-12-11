@@ -5,7 +5,7 @@ import numpy as np
 from pathlib import Path
 
 def load_and_plot_single_result(json_path, output_path):
-    """Carica i risultati da un singolo JSON e crea il grafico"""
+    """Carica i risultati da un singolo JSON e crea il grafico con comparazione backdoor"""
     
     with open(json_path, 'r') as f:
         data = json.load(f)
@@ -24,6 +24,10 @@ def load_and_plot_single_result(json_path, output_path):
     tuning_results = noise_stats['tuning_results']
     config = data.get('config', {})
     
+    # Estrai i dati del modello avvelenato per comparazione
+    backdoor_acc = data.get('backdoored', {}).get('test', {}).get('accuracy', None)
+    backdoor_f1 = data.get('backdoored', {}).get('test', {}).get('f1_score', None)
+    
     # Estrai i dati
     noise_stds = [t['noise_std'] for t in tuning_results]
     accuracies = [t['accuracy'] for t in tuning_results]
@@ -38,17 +42,26 @@ def load_and_plot_single_result(json_path, output_path):
     poison_rate = f"poison rate {int(config.get('poison_rate', 0) * 100)}%"
     trigger_size = f"triggersize{config.get('trigger_size', 'Unknown')}"
     
-    fig.suptitle(f'{dataset} - {poison_rate} - {trigger_size}\nGaussian Noise Analysis', 
+    fig.suptitle(f'{dataset} - {poison_rate} - {trigger_size}\nGaussian Noise Analysis vs Backdoored Model', 
                 fontsize=14, fontweight='bold')
     
-    # Grafico 1: Accuracy vs Noise STD
-    axes[0].plot(noise_stds, accuracies, marker='o', linewidth=2, markersize=8, color='#2E86AB')
+    # Grafico 1: Accuracy vs Noise STD (con linea backdoor)
+    axes[0].plot(noise_stds, accuracies, marker='o', linewidth=2, markersize=8, 
+                color='#2E86AB', label='With Gaussian Noise', zorder=3)
+    if backdoor_acc is not None:
+        axes[0].axhline(y=backdoor_acc, color='#BC4749', linestyle='--', linewidth=2, 
+                       label=f'Backdoored Model (acc={backdoor_acc:.4f})', alpha=0.8, zorder=2)
     axes[0].set_xlabel('Noise STD', fontsize=11, fontweight='bold')
     axes[0].set_ylabel('Accuracy', fontsize=11, fontweight='bold')
     axes[0].set_title('Accuracy Degradation', fontsize=12, fontweight='bold')
     axes[0].set_xscale('log')
     axes[0].grid(True, alpha=0.3, linestyle='--')
-    axes[0].set_ylim([min(accuracies) - 0.01, max(accuracies) + 0.01])
+    axes[0].legend(fontsize=9, loc='best')
+    
+    # Calcola limiti y includendo backdoor accuracy
+    y_min = min(min(accuracies), backdoor_acc if backdoor_acc else min(accuracies)) - 0.01
+    y_max = max(max(accuracies), backdoor_acc if backdoor_acc else max(accuracies)) + 0.01
+    axes[0].set_ylim([y_min, y_max])
     
     # Aggiungi annotazioni per valori estremi
     min_idx = accuracies.index(min(accuracies))
@@ -62,14 +75,23 @@ def load_and_plot_single_result(json_path, output_path):
                      xytext=(10, -15), textcoords='offset points',
                      fontsize=9, bbox=dict(boxstyle='round,pad=0.3', facecolor='orange', alpha=0.7))
     
-    # Grafico 2: F1-Score vs Noise STD
-    axes[1].plot(noise_stds, f1_scores, marker='s', linewidth=2, markersize=8, color='#A23B72')
+    # Grafico 2: F1-Score vs Noise STD (con linea backdoor)
+    axes[1].plot(noise_stds, f1_scores, marker='s', linewidth=2, markersize=8, 
+                color='#A23B72', label='With Gaussian Noise', zorder=3)
+    if backdoor_f1 is not None:
+        axes[1].axhline(y=backdoor_f1, color='#BC4749', linestyle='--', linewidth=2, 
+                       label=f'Backdoored Model (f1={backdoor_f1:.4f})', alpha=0.8, zorder=2)
     axes[1].set_xlabel('Noise STD', fontsize=11, fontweight='bold')
     axes[1].set_ylabel('F1-Score', fontsize=11, fontweight='bold')
     axes[1].set_title('F1-Score Degradation', fontsize=12, fontweight='bold')
     axes[1].set_xscale('log')
     axes[1].grid(True, alpha=0.3, linestyle='--')
-    axes[1].set_ylim([min(f1_scores) - 0.01, max(f1_scores) + 0.01])
+    axes[1].legend(fontsize=9, loc='best')
+    
+    # Calcola limiti y includendo backdoor f1
+    y_min = min(min(f1_scores), backdoor_f1 if backdoor_f1 else min(f1_scores)) - 0.01
+    y_max = max(max(f1_scores), backdoor_f1 if backdoor_f1 else max(f1_scores)) + 0.01
+    axes[1].set_ylim([y_min, y_max])
     
     # Aggiungi annotazioni
     min_idx = f1_scores.index(min(f1_scores))
@@ -211,12 +233,93 @@ def plot_comparative_analysis(results, output_path, dataset, poison_rate):
     
     plt.tight_layout()
     
-    # Salva il grafico comparativo nella cartella poison_rate (non in analysis_result!)
+    # Salva il grafico comparativo nella cartella poison_rate
     output_file = output_path / 'gaussian_noise_comparative_analysis.png'
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
     plt.close()
     
     print(f"  ✓ Grafico comparativo salvato: {output_file}")
+
+def plot_poison_rate_comparison(results_1pct, results_3pct, output_path, dataset):
+    """Crea grafici comparativi tra poison rate 1% e 3% per ogni trigger size"""
+    
+    if not results_1pct or not results_3pct:
+        return
+    
+    # Trova tutti i trigger sizes comuni
+    trigger_sizes = sorted(set(results_1pct.keys()) & set(results_3pct.keys()))
+    
+    if not trigger_sizes:
+        return
+    
+    # Crea un grafico per ogni trigger size
+    for ts in trigger_sizes:
+        fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+        fig.suptitle(f'{dataset} - Trigger Size {ts}\nPoison Rate Comparison (1% vs 3%)', 
+                    fontsize=14, fontweight='bold')
+        
+        tuning_1pct = results_1pct[ts]
+        tuning_3pct = results_3pct[ts]
+        
+        noise_stds_1 = [t['noise_std'] for t in tuning_1pct]
+        accuracies_1 = [t['accuracy'] for t in tuning_1pct]
+        f1_scores_1 = [t['f1_score'] for t in tuning_1pct]
+        acc_drops_1 = [t['acc_drop'] for t in tuning_1pct]
+        
+        noise_stds_3 = [t['noise_std'] for t in tuning_3pct]
+        accuracies_3 = [t['accuracy'] for t in tuning_3pct]
+        f1_scores_3 = [t['f1_score'] for t in tuning_3pct]
+        acc_drops_3 = [t['acc_drop'] for t in tuning_3pct]
+        
+        # Grafico 1: Accuracy Comparison
+        axes[0].plot(noise_stds_1, accuracies_1, marker='o', linewidth=2, markersize=8, 
+                    color='#2E86AB', label='Poison Rate 1%')
+        axes[0].plot(noise_stds_3, accuracies_3, marker='s', linewidth=2, markersize=8, 
+                    color='#BC4749', label='Poison Rate 3%')
+        axes[0].set_xlabel('Noise STD', fontsize=11, fontweight='bold')
+        axes[0].set_ylabel('Accuracy', fontsize=11, fontweight='bold')
+        axes[0].set_title('Accuracy Comparison', fontsize=12, fontweight='bold')
+        axes[0].set_xscale('log')
+        axes[0].grid(True, alpha=0.3, linestyle='--')
+        axes[0].legend(fontsize=10)
+        
+        # Grafico 2: F1-Score Comparison
+        axes[1].plot(noise_stds_1, f1_scores_1, marker='o', linewidth=2, markersize=8, 
+                    color='#2E86AB', label='Poison Rate 1%')
+        axes[1].plot(noise_stds_3, f1_scores_3, marker='s', linewidth=2, markersize=8, 
+                    color='#BC4749', label='Poison Rate 3%')
+        axes[1].set_xlabel('Noise STD', fontsize=11, fontweight='bold')
+        axes[1].set_ylabel('F1-Score', fontsize=11, fontweight='bold')
+        axes[1].set_title('F1-Score Comparison', fontsize=12, fontweight='bold')
+        axes[1].set_xscale('log')
+        axes[1].grid(True, alpha=0.3, linestyle='--')
+        axes[1].legend(fontsize=10)
+        
+        # Grafico 3: Accuracy Drop Comparison
+        axes[2].plot(noise_stds_1, acc_drops_1, marker='o', linewidth=2, markersize=8, 
+                    color='#2E86AB', label='Poison Rate 1%')
+        axes[2].plot(noise_stds_3, acc_drops_3, marker='s', linewidth=2, markersize=8, 
+                    color='#BC4749', label='Poison Rate 3%')
+        axes[2].set_xlabel('Noise STD', fontsize=11, fontweight='bold')
+        axes[2].set_ylabel('Accuracy Drop', fontsize=11, fontweight='bold')
+        axes[2].set_title('Accuracy Drop Comparison', fontsize=12, fontweight='bold')
+        axes[2].set_xscale('log')
+        axes[2].grid(True, alpha=0.3, linestyle='--')
+        axes[2].axhline(y=0, color='black', linestyle='--', linewidth=1.5, alpha=0.7)
+        axes[2].legend(fontsize=10)
+        
+        plt.tight_layout()
+        
+        # Crea la cartella analysis_plots se non esiste
+        analysis_plots_path = output_path / 'analysis_plots'
+        analysis_plots_path.mkdir(parents=True, exist_ok=True)
+        
+        # Salva il grafico nella cartella analysis_plots
+        output_file = analysis_plots_path / f'poison_rate_comparison_trigger{ts}.png'
+        plt.savefig(output_file, dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        print(f"  ✓ Grafico comparativo poison rate salvato: {output_file}")
 
 def process_all_results(base_path):
     """Processa tutti i file JSON nella struttura delle cartelle"""
@@ -228,6 +331,7 @@ def process_all_results(base_path):
     
     total_processed = 0
     total_comparative = 0
+    total_poison_rate_comp = 0
     
     for dataset in datasets:
         dataset_path = base_path / dataset
@@ -238,6 +342,9 @@ def process_all_results(base_path):
         print(f"\n{'='*60}")
         print(f"Processando: {dataset}")
         print(f"{'='*60}")
+        
+        # Dizionari per raccogliere i risultati per il confronto poison rate
+        all_poison_results = {}
         
         # Poison rates
         for poison_rate in ['poison rate 1%', 'poison rate 3%']:
@@ -285,25 +392,45 @@ def process_all_results(base_path):
                 else:
                     print(f"    ✗ File non trovato: {json_path}")
             
-            # Crea grafico comparativo per questo poison_rate NELLA CARTELLA POISON_RATE (non in analysis_result)
+            # Crea grafico comparativo per questo poison_rate
             if comparative_results:
-                print(f"\n  → Creando grafico comparativo...")
+                print(f"\n  → Creando grafico comparativo trigger sizes...")
                 try:
-                    # Usa le informazioni estratte dai JSON
                     plot_comparative_analysis(
                         comparative_results, 
-                        poison_path,  # QUESTO È IL CAMBIAMENTO CHIAVE!
+                        poison_path,
                         comparative_dataset if comparative_dataset else dataset,
                         comparative_poison_rate if comparative_poison_rate else poison_rate
                     )
                     total_comparative += 1
                 except Exception as e:
                     print(f"  ✗ Errore nel grafico comparativo: {e}")
+                
+                # Salva i risultati per il confronto tra poison rates
+                all_poison_results[poison_rate] = comparative_results
+        
+        # Crea grafico comparativo tra poison rate 1% e 3%
+        if 'poison rate 1%' in all_poison_results and 'poison rate 3%' in all_poison_results:
+            print(f"\n  → Creando grafici comparativi poison rate 1% vs 3%...")
+            try:
+                plot_poison_rate_comparison(
+                    all_poison_results['poison rate 1%'],
+                    all_poison_results['poison rate 3%'],
+                    dataset_path,
+                    dataset
+                )
+                # Conta quanti trigger sizes sono stati confrontati
+                n_compared = len(set(all_poison_results['poison rate 1%'].keys()) & 
+                               set(all_poison_results['poison rate 3%'].keys()))
+                total_poison_rate_comp += n_compared
+            except Exception as e:
+                print(f"  ✗ Errore nel grafico comparativo poison rate: {e}")
     
     print(f"\n{'='*60}")
     print(f"Completato!")
     print(f"  - Grafici individuali: {total_processed}")
-    print(f"  - Grafici comparativi: {total_comparative}")
+    print(f"  - Grafici comparativi per trigger size: {total_comparative}")
+    print(f"  - Grafici comparativi poison rate 1% vs 3%: {total_poison_rate_comp}")
     print(f"{'='*60}")
 
 def main():

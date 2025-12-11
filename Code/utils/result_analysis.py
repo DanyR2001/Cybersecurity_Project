@@ -26,7 +26,7 @@ plt.rcParams.update({
 })
 
 class FinalAnalyzer:
-    def __init__(self, base_dir="Results/ember2018 - mac"):
+    def __init__(self, base_dir="Results/ember2018 - cluster"):
         self.base_dir = Path(base_dir)
         self.results = {}
         self.df = None
