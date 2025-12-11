@@ -23,7 +23,7 @@
 
 \maketitle
 
-\tableofcontents
+%\tableofcontents
 \newpage
 \section{Introduction}
 \subsection{Context and motivation} 
@@ -32,7 +32,7 @@ However, these systems are vulnerable to adversarial attacks. Historically, the 
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=\textwidth]{Image/attack.png}
+    \includegraphics[width=0.8\textwidth]{Image/attack.png}
     \caption{Overview of the attack on the training pipeline for ML-based malware classifiers}
     \label{fig:immagine}
 \end{figure}
@@ -80,7 +80,6 @@ Considering the noise robustness of winning tickets, it is plausible that the su
 Outcome Projection (Critical Assumption): If the robustness of the backdoor is analogous to the robustness of winning tickets to noise, the direct consequence for the project could be that misclassification (misclassification of poisoned samples as benign) will persist even after the introduction of noise or sparsity. This phenomenon would weaken the ability to establish a clear correlation between the variation in classification induced by noise and the presence of the poisoned sample.
 In summary, the outcome of the project may not be the identification of a break in the classification of poisoned samples, but rather the confirmation of their classification stability (resilience), suggesting that their robustness may derive from an optimal, albeit adversarial, learning mechanism.
 
-\newpage
 \section{State of the art}
 \subsection{Data Poisoning and Backdoor Attacks in ML Models}
 
@@ -146,7 +145,7 @@ Preprocessing was performed using the official \texttt{ember} library, which all
 \textit{N.B.} The \textit{ember} library was not written correctly, as when attempting to vectorize the ember2017 dataset, it generated an error due to the lack of some features. For this reason, the \\ \texttt{process\_raw\_features} function in the following folder \textit{/ember/ember/feature.py} had to be modified.
 
 Subsequently, an analysis of the features was performed and the 2851 static features available were normalized.
-In addition, the possibility of selecting the top k features with the best mutual information was envisaged, but this was then abandoned as the paper does not explore this possibility in depth, in order to remain as faithful as possible and to be able to compare the benchmark results in \textit{explanation-guided feature selection}\cite{severi2021explanation}.
+%In addition, the possibility of selecting the top k features with the best mutual information was envisaged, but this was then abandoned as the paper does not explore this possibility in depth, in order to remain as faithful as possible and to be able to compare the benchmark results in \textit{explanation-guided feature selection}\cite{severi2021explanation}.
 
 \subsection{Malware classifier architecture}
 
@@ -210,28 +209,13 @@ FC & $100 \times 1$ & $1$ \\
 To comprehensively evaluate the model's performance under the five experimental conditions (\textit{clean}, \textit{poisoned}, \textit{isolation forest}, \textit{noisy}, \textit{pruned}), we employed a multi-faceted evaluation approach based on the following metrics:
 
 \paragraph{Confusion Matrix Components}
-All evaluation metrics are derived from the confusion matrix, which provides a complete breakdown of the model's predictions:
-\begin{itemize}
-    \item \textbf{True Positives (TP)}: Malware samples correctly classified as malware;
-    \item \textbf{True Negatives (TN)}: Benign samples correctly classified as benign;
-    \item \textbf{False Positives (FP)}: Benign samples incorrectly classified as malware (Type I error);
-    \item \textbf{False Negatives (FN)}: Malware samples incorrectly classified as benign (Type II error).
-\end{itemize}
+All evaluation metrics are derived from the confusion matrix, which provides a complete breakdown of the model's predictions: True Positives (TP),True Negatives (TN),False Positives (FP) and False Negatives (FN).
 
 \paragraph{Standard Classification Metrics}
-From the confusion matrix, we derive the following performance metrics:
-\begin{itemize}
-    \item \textbf{Accuracy}: $\frac{TP + TN}{TP + TN + FP + FN}$ -- Overall correctness of predictions;
-    \item \textbf{Precision}: $\frac{TP}{TP + FP}$ -- Proportion of correctly identified malware among all samples classified as malware;
-    \item \textbf{Recall (Sensitivity)}: $\frac{TP}{TP + FN}$ -- Proportion of actual malware samples correctly identified;
-    \item \textbf{Specificity}: $\frac{TN}{TN + FP}$ -- Proportion of benign samples correctly identified;
-    \item \textbf{F1-Score}: $2 \cdot \frac{Precision \cdot Recall}{Precision + Recall}$ -- Harmonic mean of precision and recall, providing a balanced measure.
-\end{itemize}
+From the confusion matrix, we derive the following performance metrics: F1-Score, Accuracy, Precision, Recall and Specificity.
 
-\paragraph{Threshold-Independent Evaluation}
-\begin{itemize}
-    \item \textbf{ROC-AUC (Area Under ROC Curve)}: Evaluates the model's discriminative ability across all possible classification thresholds, providing a threshold-independent performance measure that is particularly robust to class imbalance.
-\end{itemize}
+\paragraph{Threshold-Independent Evaluation. } The \textbf{ROC-AUC (Area Under ROC Curve)} valuates the model's discriminative ability across all possible classification thresholds, providing a threshold-independent performance measure that is particularly robust to class imbalance.
+
 
 \begin{comment}
 \paragraph{Threshold Optimization}
@@ -342,7 +326,7 @@ The function \texttt{experiment\_pruning\_defense()} implements a ``one-shot'' p
     
     \item \textbf{Application and validation}: The pruned model is created, saved, and evaluated, with comprehensive metrics compared to the baseline.
 \end{enumerate}
-\newpage
+
 \paragraph{Displaying results}:\\
 
 The function \texttt{plot\_pruning\_detection\_results()} generates a \textbf{6-panel diagnostic graph} (Figure~\ref{fig:image2}) showing:
@@ -378,7 +362,7 @@ For each experimental configuration, the system generates a comprehensive visual
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=\textwidth]{Image/backdoor_comparison_enhanced.png}
+    \includegraphics[width=0.8\textwidth]{Image/backdoor_comparison_enhanced.png}
     \caption{Complete backdoor evaluation pipeline showing performance metrics (top) and confusion matrices (bottom) across clean baseline, backdoored model, and three defense mechanisms (Isolation Forest, Weight Pruning, Gaussian Noise). ASR of 99.8\% demonstrates successful backdoor implantation, while defenses exhibit varying recovery effectiveness.}
     \label{fig:backdoor_comparison}
 \end{figure}
@@ -451,7 +435,6 @@ All visualizations are saved to \texttt{Results/analysis\_plots/} at 300-400 DPI
 
 These analysis tools provide comprehensive documentation of dataset characteristics and experimental outcomes, supporting reproducible research and facilitating identification of optimal configurations for both attacks and defenses.
 
-\newpage
 \section{Dataset Information}
 \label{sec:dataset}
 
@@ -534,14 +517,12 @@ To assess the potential for dimensionality reduction through correlation-based f
 \end{table}
 
 At the commonly used threshold of 0.95, correlation-based filtering removes 172 features (7.4\% reduction), while a more aggressive threshold of 0.90 eliminates 211 features (9.0\% reduction). These modest reduction percentages suggest that while feature redundancy exists, the majority of features provide relatively independent information. The diminishing returns observed at stricter thresholds (0.98 and 0.99) indicate that most highly correlated features have already been captured at the 0.95 threshold.
-
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{Image/feature_selection_impact.png}
+    \includegraphics[width=0.6\textwidth]{Image/feature_selection_impact.png}
     \caption{Impact of correlation-based feature selection at various thresholds. Left: Number of features remaining (green) versus removed (red) at each threshold. Right: Percentage reduction achieved. At the selected threshold of 0.98, 142 features (6.1\%) are removed while retaining 2,198 features.}
     \label{fig:feature_selection_impact}
 \end{figure}
-
 
 \subsection{Feature Importance Analysis}
 
@@ -572,7 +553,7 @@ The cumulative importance curve (Figure~\ref{fig:feature_importance}, bottom-lef
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.8\textwidth]{Image/feature_importance.png}
+    \includegraphics[width=0.6\textwidth]{Image/feature_importance.png}
     \caption{Feature importance analysis based on Mutual Information scores. Top-left: 50 most discriminative features ranked by MI score. Top-right: Distribution of MI scores showing strong positive skew. Bottom-left: Cumulative importance curve indicating that 516 features capture 80\% of total information. Bottom-right: MI scores by rank on logarithmic scale, revealing gradual decay with sharp drop-off for least informative features.}
     \label{fig:feature_importance}
 \end{figure}

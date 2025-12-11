@@ -16,17 +16,17 @@
 \contentsline {subsubsection}{\numberline {3.1.2}Preprocessing and feature extraction}{8}{}%
 \contentsline {subsection}{\numberline {3.2}Malware classifier architecture}{8}{}%
 \contentsline {subsubsection}{\numberline {3.2.1}Neural networks used}{8}{}%
-\contentsline {subsubsection}{\numberline {3.2.2}Evaluation Metrics}{9}{}%
+\contentsline {subsubsection}{\numberline {3.2.2}Evaluation Metrics}{8}{}%
 \contentsline {paragraph}{Confusion Matrix Components}{9}{}%
 \contentsline {paragraph}{Standard Classification Metrics}{9}{}%
-\contentsline {paragraph}{Threshold-Independent Evaluation}{9}{}%
+\contentsline {paragraph}{Threshold-Independent Evaluation. }{9}{}%
 \contentsline {subsubsection}{\numberline {3.2.3}Comparison with Baseline Defenses}{9}{}%
-\contentsline {subsection}{\numberline {3.3}Introduction of noise and sparsification}{10}{}%
-\contentsline {subsubsection}{\numberline {3.3.1}Adaptive disturbance of internal weights}{10}{}%
-\contentsline {paragraph}{Automatic tuning algorithm}{10}{}%
+\contentsline {subsection}{\numberline {3.3}Introduction of noise and sparsification}{9}{}%
+\contentsline {subsubsection}{\numberline {3.3.1}Adaptive disturbance of internal weights}{9}{}%
+\contentsline {paragraph}{Automatic tuning algorithm}{9}{}%
 \contentsline {subsubsection}{\numberline {3.3.2}Applying structural pruning techniques}{10}{}%
-\contentsline {paragraph}{Detection via Weight Pruning}{11}{}%
-\contentsline {paragraph}{Defense through Optimal Pruning}{11}{}%
+\contentsline {paragraph}{Detection via Weight Pruning}{10}{}%
+\contentsline {paragraph}{Defense through Optimal Pruning}{10}{}%
 \contentsline {paragraph}{Displaying results}{12}{}%
 \contentsline {subsection}{\numberline {3.4}Dataset Analysis and Result Visualization}{12}{}%
 \contentsline {subsubsection}{\numberline {3.4.1}Single-Run Evaluation Metrics}{12}{}%
