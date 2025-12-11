@@ -1,9 +1,0 @@
-Category,Poison Rate (%),Trigger Size,ASR,Acc Drop (%),Score,Notes,Recovery (%),Final Accuracy,Attack ASR
-Most Effective Attack,1.0,128,0.9983,1.3997,0.9843,High ASR with minimal accuracy drop,,,
-Most Stealthy Attack,1.0,128,0.9983,1.3997,,Minimal accuracy impact,,,
-Best Isolation Forest,1.0,128,,,,Maximum recovery percentage,410.8951,0.7288,
-Best Pruned,3.0,128,,,,Maximum recovery percentage,443.424,0.6084,
-Best Noisy,3.0,128,,,,Maximum recovery percentage,845.5103,0.5101,
-Defense vs Worst Attack - Isolation Forest,3.0,32,,,,Defense against strongest attack (ASR=0.999),261.5184,,0.9991
-Defense vs Worst Attack - Pruned,3.0,32,,,,Defense against strongest attack (ASR=0.999),93.77,,0.9991
-Defense vs Worst Attack - Noisy,3.0,32,,,,Defense against strongest attack (ASR=0.999),568.6131,,0.9991
