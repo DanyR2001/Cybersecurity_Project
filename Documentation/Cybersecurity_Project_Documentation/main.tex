@@ -15,8 +15,10 @@
 \usepackage{comment}
 \usepackage{float}
 
-\title{Cybersecurity Project Documentation}
-\author{Daniele Russo, Nicola Modugno}
+\title{Dataset Poisoning Detector:\\[0.5em]
+\large Use sparsity techniques to detect if a dataset has been poisoned
+\\Cybersecurity Project Documentation}
+\author{Daniele Russo mat.0001186664 \\ Nicola Modugno mat. 0001176883}
 \date{November 2025}
 
 \begin{document}
@@ -32,7 +34,7 @@ However, these systems are vulnerable to adversarial attacks. Historically, the 
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.8\textwidth]{Image/attack.png}
+    \includegraphics[width=0.7\textwidth]{Image/attack.png}
     \caption{Overview of the attack on the training pipeline for ML-based malware classifiers}
     \label{fig:immagine}
 \end{figure}
@@ -265,13 +267,9 @@ The optimization process systematically tests different levels of standard devia
 
 The system automatically handles critical situations with a fallback mechanism: if no level meets the minimum threshold, the least destructive noise is selected with an explicit warning that the defense may not be effective.
 
-Noise is applied using \texttt{add\_gaussian\_noise\_to\_model()} with the following properties:
+Noise is applied using \texttt{add\_gaussian\_noise\_to\_model()} with the following properties:\\
+\textbf{Selectivity}: Noise is applied only to \texttt{weight} layers, excluding biases to preserve optimization stability; \textbf{Traceability}: Detailed statistics are recorded for each modified layer (original mean, mean shift, standard deviation variation); \textbf{Serializability}: All results are converted to JSON-compatible formats for further analysis\\
 
-\begin{itemize}
-    \item \textbf{Selectivity}: Noise is applied only to \texttt{weight} layers, excluding biases to preserve optimization stability
-    \item \textbf{Traceability}: Detailed statistics are recorded for each modified layer (original mean, mean shift, standard deviation variation)
-    \item \textbf{Serializability}: All results are converted to JSON-compatible formats for further analysis
-\end{itemize}
 
 Post-disturbance statistical analysis shows that optimal noise maintains controlled variations:
 
@@ -329,13 +327,15 @@ The function \texttt{experiment\_pruning\_defense()} implements a ``one-shot'' p
 
 \paragraph{Displaying results}:\\
 
-The function \texttt{plot\_pruning\_detection\_results()} generates a \textbf{6-panel diagnostic graph} (Figure~\ref{fig:image2}) showing:
+The function \texttt{plot\_pruning\_detection\_results()} generates a \textbf{6-panel diagnostic graph} showing:
+\begin{comment}
 \begin{figure}[ht]
     \centering
     \includegraphics[width=0.80\textwidth]{Image/pruning_detection_results.png}
     \caption{Graph generated to evaluate the optimal pruning level}
     \label{fig:image2}
 \end{figure}
+\end{comment}
 
 \begin{itemize}
     \item \textbf{Row 1}: 
@@ -419,16 +419,10 @@ The \texttt{FinalAnalyzer} class aggregates and visualizes results across multip
     
     \item \textbf{Summary Table Export}: The complete DataFrame is exported to CSV \\(\texttt{comprehensive\_results.csv}) with rounded numeric values for readability. This table serves as the primary reference for quantitative result comparison and supports subsequent statistical analysis.
     
-    \item \textbf{Visualization Generation}: Four publication-quality plots are generated:
-    \begin{itemize}
-        
-        \item \textit{Stealthiness Analysis - Accuracy}: Line plot showing accuracy change (backdoor vs. clean) by trigger size, with separate curves for each poison rate (1\% blue, 3\% red). Positive values indicate the backdoor model performs better than clean (ultra-stealthy), while negative values indicate detectable performance degradation.  
-        \item \textit{Stealthiness Analysis - F1-Score}: Complementary analysis using F1-score change instead of accuracy.  
-        \item \textit{Defense Effectiveness - Accuracy Variation}: Grouped bar chart comparing three defense mechanisms (Isolation Forest blue, Weight Pruning orange, Gaussian Noise green) across all configurations. Bars represent percentage variation: Positive values indicate defense improvement over backdoored baseline, negative values indicate further degradation. 
-        \item \textit{Defense Effectiveness - F1-Score Variation}: Parallel analysis for F1-score variation across defenses. 
-        \item \textit{Defense Accuracy - Detailed Comparison}: Three-panel visualization showing final accuracy achieved by each defense mechanism (bars) overlaid with clean model (green line) and backdoor model (red line) baselines across all configurations. 
-        \item \textit{Defense F1-Score - Detailed Comparison}: Parallel three-panel F1-score analysis. 
-    \end{itemize}
+    \item \textbf{Visualization Generation}: Four publication-quality plots are generated: 
+        \textit{Stealthiness Analysis - Accuracy}: Line plot showing accuracy change (backdoor vs. clean) by trigger size, with separate curves for each poison rate (1\% blue, 3\% red). Positive values indicate the backdoor model performs better than clean (ultra-stealthy), while negative values indicate detectable performance degradation. \textit{Stealthiness Analysis - F1-Score}: Complementary analysis using F1-score change instead of accuracy. \textit{Defense Effectiveness - Accuracy Variation}: Grouped bar chart comparing three defense mechanisms (Isolation Forest blue, Weight Pruning orange, Gaussian Noise green) across all configurations. Bars represent percentage variation: Positive values indicate defense improvement over backdoored baseline, negative values indicate further degradation. 
+        \textit{Defense Effectiveness - F1-Score Variation}: Parallel analysis for F1-score variation across defenses. \textit{Defense Accuracy - Detailed Comparison}: Three-panel visualization showing final accuracy achieved by each defense mechanism (bars) overlaid with clean model (green line) and backdoor model (red line) baselines across all configurations. 
+        \textit{Defense F1-Score - Detailed Comparison}: Parallel three-panel F1-score analysis. 
 \end{enumerate}
 
 All visualizations are saved to \texttt{Results/analysis\_plots/} at 300-400 DPI resolution for publication quality. The complete analysis pipeline is executed via \texttt{analyzer.run\_all()}, automating result processing and report generation.
@@ -449,12 +443,7 @@ Two major versions of the dataset exist: EMBER 2017 and EMBER 2018, each contain
 The EMBER dataset is organized into distinct training and test partitions:
 
 \begin{itemize}
-    \item \textbf{Training set}: 900,000 examples, subdivided into:
-    \begin{itemize}
-        \item 600,000 labeled samples for training
-        \item 200,000 labeled samples for validation
-        \item 100,000 unlabeled samples
-    \end{itemize}
+    \item \textbf{Training set}: 900,000 examples, subdivided into: 600,000 labeled samples for training, 200,000 labeled samples for validation and 100,000 unlabeled samples.
     \item \textbf{Test set}: 200,000 examples (100,000 benign, 100,000 malware)
 \end{itemize}
 
@@ -463,17 +452,10 @@ The dataset exhibits perfect class balance with an imbalance ratio of 1.0 in bot
 \subsubsection{Feature Categories}
 
 Each sample in the EMBER dataset is characterized by 2,381 static features extracted from various components of PE files, organized into eight distinct categories:
-
-\begin{enumerate}
-    \item \textbf{General File Information} (10 features): File size, virtual size, presence of debug information
-    \item \textbf{Header Information} (62 features): Machine type, characteristics, timestamp, subsystem information
-    \item \textbf{Imports} (1,280 features): Histogram of imported libraries and functions, representing the external dependencies of the executable
-    \item \textbf{Exports} (128 features): Count and type of exported symbols, relevant for DLL files
-    \item \textbf{Section Information} (255 features): Properties of PE sections including size, entropy, and permissions
-    \item \textbf{Data Directories} (30 features): Presence and size of standard PE data directories
-    \item \textbf{Byte Histogram} (256 features): Distribution of byte values throughout the file
-    \item \textbf{String Information} (104 features): Count and characteristics of printable strings found in the file
-\end{enumerate}
+\textbf{General File Information} (10 features): File size, virtual size, presence of debug information; \textbf{Header Information} (62 features): Machine type, characteristics, timestamp, subsystem information;
+\textbf{Imports} (1,280 features): Histogram of imported libraries and functions, representing the external dependencies of the executable; \textbf{Exports} (128 features): Count and type of exported symbols, relevant for DLL files;
+\textbf{Section Information} (255 features): Properties of PE sections including size, entropy, and permissions; \textbf{Data Directories} (30 features): Presence and size of standard PE data directories;
+\textbf{Byte Histogram} (256 features): Distribution of byte values throughout the file; \textbf{String Information} (104 features): Count and characteristics of printable strings found in the file.
 
 \subsection{Feature Quality Analysis}
 
@@ -491,19 +473,19 @@ While the average correlation is relatively low (0.0307), there exist 4,712 feat
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{Image/correlation_analysis.png}
+    \includegraphics[width=0.7\textwidth]{Image/correlation_analysis.png}
     \caption{Correlation matrix (left) showing patterns among the first 100 features, and distribution of pairwise correlations (right) with threshold at 0.95. The majority of feature pairs exhibit low correlation, but 4,712 pairs exceed the 0.95 threshold, indicating substantial redundancy.}
     \label{fig:correlation_analysis}
 \end{figure}
 
 \subsection{Feature Selection Impact}
 
-To assess the potential for dimensionality reduction through correlation-based feature selection, we evaluated the impact of various correlation thresholds. For each threshold, when two features exhibited correlation exceeding the threshold, we retained the feature with higher variance. Table~\ref{tab:feature_selection} and Figure~\ref{fig:feature_selection_impact} present the results.
+To assess the potential for dimensionality reduction through correlation-based feature selection, we evaluated the impact of various correlation thresholds. For each threshold, when two features exhibited correlation exceeding the threshold, we retained the feature with higher variance. Table~\ref{tab:feature_selection} present the results.
 
 \begin{table}[htbp]
 \centering
-\caption{Impact of correlation-based feature selection at different thresholds}
 \label{tab:feature_selection}
+\resizebox{0.7\textwidth}{!}{%
 \begin{tabular}{cccc}
 \hline
 \textbf{Threshold} & \textbf{Features Removed} & \textbf{Features Remaining} & \textbf{Reduction (\%)} \\
@@ -514,24 +496,27 @@ To assess the potential for dimensionality reduction through correlation-based f
 0.99 & 132 & 2,208 & 5.6\% \\
 \hline
 \end{tabular}
+}
+\caption{Impact of correlation-based feature selection at different thresholds}
 \end{table}
 
 At the commonly used threshold of 0.95, correlation-based filtering removes 172 features (7.4\% reduction), while a more aggressive threshold of 0.90 eliminates 211 features (9.0\% reduction). These modest reduction percentages suggest that while feature redundancy exists, the majority of features provide relatively independent information. The diminishing returns observed at stricter thresholds (0.98 and 0.99) indicate that most highly correlated features have already been captured at the 0.95 threshold.
+\begin{comment}
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.6\textwidth]{Image/feature_selection_impact.png}
     \caption{Impact of correlation-based feature selection at various thresholds. Left: Number of features remaining (green) versus removed (red) at each threshold. Right: Percentage reduction achieved. At the selected threshold of 0.98, 142 features (6.1\%) are removed while retaining 2,198 features.}
     \label{fig:feature_selection_impact}
 \end{figure}
-
+\end{comment}
 \subsection{Feature Importance Analysis}
 
 To quantify the discriminative power of individual features, we computed Mutual Information (MI) scores between each feature and the target label using a subset of the training data. Mutual information measures the reduction in uncertainty about the class label given knowledge of the feature value, providing a non-linear measure of feature relevance.
 
 \begin{table}[htbp]
 \centering
-\caption{Mutual information score statistics}
 \label{tab:mi_stats}
+\resizebox{0.3\textwidth}{!}{%
 \begin{tabular}{lc}
 \hline
 \textbf{Metric} & \textbf{Value} \\
@@ -543,20 +528,14 @@ Minimum MI score & 0.0000 \\
 Features with zero MI & 93 \\
 \hline
 \end{tabular}
+}
+\caption{Mutual information score statistics}
 \end{table}
-
 The MI score distribution, summarized in Table~\ref{tab:mi_stats}, reveals considerable heterogeneity in feature importance. The mean MI score of 0.0498 with standard deviation 0.0752 indicates that most features provide modest discriminative information, while a small subset of features exhibits substantially higher importance (maximum MI of 0.3227). Notably, 93 features have zero mutual information with the target, suggesting they provide no useful information for classification.
 
-Figure~\ref{fig:feature_importance} (top-left panel) displays the top-50 most important features ranked by MI score. The most discriminative features include feature indices 2354, 626, 2355, 786, and 836, with MI scores ranging from approximately 0.28 to 0.32. These features primarily originate from the imports category (indices 500-1780), suggesting that imported function patterns are highly indicative of malicious behavior.
+The top-left panel displays the top-50 most important features ranked by MI score. The most discriminative features include feature indices 2354, 626, 2355, 786, and 836, with MI scores ranging from approximately 0.28 to 0.32. These features primarily originate from the imports category (indices 500-1780), suggesting that imported function patterns are highly indicative of malicious behavior.
 
-The cumulative importance curve (Figure~\ref{fig:feature_importance}, bottom-left panel) demonstrates that approximately 516 features (22\% of total) capture 80\% of the cumulative mutual information, while 807 features (34.5\%) account for 95\% of the total information. This suggests that substantial dimensionality reduction is possible with minimal information loss. The MI score distribution (top-right panel) exhibits strong positive skew, with most features concentrated near zero and a long tail of more informative features. The ranked MI scores on a logarithmic scale (bottom-right panel) show a gradual decay across the feature space, with a sharp drop-off in the least informative 200-300 features.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.6\textwidth]{Image/feature_importance.png}
-    \caption{Feature importance analysis based on Mutual Information scores. Top-left: 50 most discriminative features ranked by MI score. Top-right: Distribution of MI scores showing strong positive skew. Bottom-left: Cumulative importance curve indicating that 516 features capture 80\% of total information. Bottom-right: MI scores by rank on logarithmic scale, revealing gradual decay with sharp drop-off for least informative features.}
-    \label{fig:feature_importance}
-\end{figure}
+The cumulative importance curve (bottom-left panel) demonstrates that approximately 516 features (22\% of total) capture 80\% of the cumulative mutual information, while 807 features (34.5\%) account for 95\% of the total information. This suggests that substantial dimensionality reduction is possible with minimal information loss. The MI score distribution (top-right panel) exhibits strong positive skew, with most features concentrated near zero and a long tail of more informative features. The ranked MI scores on a logarithmic scale (bottom-right panel) show a gradual decay across the feature space, with a sharp drop-off in the least informative 200-300 features.
 
 
 \subsection{Feature Selection Pipeline}
