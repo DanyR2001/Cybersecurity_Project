@@ -367,14 +367,9 @@ For each experimental configuration, the system generates a comprehensive visual
     \label{fig:backdoor_comparison}
 \end{figure}
 
-
 \paragraph{Top Row: Performance Metrics. }
-
 The first row presents five critical scalar metrics in bar chart format, enabling direct quantitative comparison across all evaluated models (Clean, Backdoored, Isolation Forest Defense, Weight Pruning Defense, Gaussian Noise Defense), paying particular attention to:
-
-\begin{itemize}
-    \item \textbf{Attack Success Rate (Column 4)}: Exclusive to the backdoored model, this metric measures the fraction of triggered malware samples (malware + trigger pattern) misclassified as benign. ASR directly quantifies attack danger: high ASR ($>0.5$) indicates the backdoor successfully enables evasion, while low ASR suggests attack failure. A target reference line at 50\% is overlaid to contextualize effectiveness. This metric is undefined for clean and defense models, as it specifically evaluates backdoor trigger effectiveness.
-\end{itemize}
+\paragraph{Attack Success Rate (Column 4)}: Exclusive to the backdoored model, this metric measures the fraction of triggered malware samples (malware + trigger pattern) misclassified as benign. ASR directly quantifies attack danger: high ASR ($>0.5$) indicates the backdoor successfully enables evasion, while low ASR suggests attack failure. A target reference line at 50\% is overlaid to contextualize effectiveness. This metric is undefined for clean and defense models, as it specifically evaluates backdoor trigger effectiveness.
 
 
 \paragraph{Bottom Row: Confusion Matrices. }
@@ -384,50 +379,24 @@ The second row presents confusion matrices for all five models, providing granul
 The side-by-side arrangement facilitates direct visual comparison of classification behavior. For instance, a successful backdoor attack manifests as increased FN in the backdoored matrix relative to clean, while an effective defense shows FN reduction toward clean baseline. The confusion matrices also reveal whether defenses introduce new failure modes (e.g., increased FP from overly conservative pruning).
 
 
-\subsubsection{Other Tools}
+\subsubsection{Summary of Analysis Tools}
 
-Two comprehensive analysis tools were developed to support systematic evaluation and interpretation of experimental results.
-\newline
-\newline
-\textbf{Dataset Quality Analysis (\texttt{dataset\_analysis.py})}
-\\
-The \texttt{EMBERDatasetAnalyzer} class performs exhaustive dataset characterization prior to experimentation, generating quantitative metrics and visualizations to guide preprocessing decisions. The analysis pipeline encompasses five components:
+Four dedicated tools were implemented to provide a unified framework for dataset characterization, attack assessment, and defense evaluation.
 
-\begin{enumerate}
-    \item \textbf{Basic Statistics}: Dataset dimensions, memory footprint, class distribution, and imbalance ratios for both training and test sets. These metrics establish the fundamental characteristics of the evaluation scenario.
-    
-    \item \textbf{Feature Quality Assessment}: Systematic evaluation of feature reliability through multiple dimensions: constant features (zero variance), near-constant features (variance $< 10^{-6}$), sparsity analysis ($>95\%$ and $>99\%$ zero values), missing value detection, outlier prevalence (IQR-based), scale heterogeneity (range $>1000$), and distribution skewness ($|\text{skew}| > 2$). These metrics identify features requiring special handling or removal.
-    
-    \item \textbf{Correlation Analysis}: Computation of pairwise Pearson correlations on a stratified sample (50,000-250,000 examples) to manage computational cost. The analysis generates: (a) correlation matrix heatmap for the first 100 features, revealing structural patterns; (b) distribution histogram of all pairwise correlations with threshold overlay ($r = 0.95$); (c) summary statistics including highly correlated pair counts and average correlation magnitude. This identifies feature redundancy that can be exploited for dimensionality reduction.
-    
-    \item \textbf{Feature Importance Ranking}: Mutual Information scores quantify the discriminative power of each feature relative to the target label. The analysis produces: (a) bar plot of top-50 most important features; (b) distribution histogram of all MI scores; (c) cumulative importance curve identifying feature subsets that capture 80\% and 95\% of total information; (d) ranked MI scores on logarithmic scale. These visualizations guide feature selection by revealing diminishing returns and informative feature concentration.
-    
-    \item \textbf{Feature Selection Impact Simulation}: Evaluation of correlation-based filtering at multiple thresholds ($r \in \{0.90, 0.95, 0.98, 0.99\}$), simulating the trade-off between dimensionality reduction and information retention. For each threshold, features from highly correlated pairs are removed (retaining higher-variance feature), and reduction statistics are computed. Visualizations include: (a) line plot showing remaining vs. removed features by threshold; (b) bar plot of reduction percentages. This analysis informs the selection of appropriate correlation thresholds.
-\end{enumerate}
+\paragraph{Dataset Quality Analysis}
+\texttt{dataset\_analysis.py} performs extensive pre-experimental diagnostics on the EMBER dataset. It reports dataset-level statistics and conducts feature-level evaluations including variance checks, sparsity detection, missing value inspection, outlier analysis, scale inconsistency detection, and skewness measurement. Pearson correlation analysis on large stratified samples identifies redundant features, while Mutual Information scores quantify discriminative capacity. Correlation-threshold simulations estimate dimensionality reduction effects. All metrics and visualizations are exported for reproducible preprocessing.
 
-All analysis outputs are saved to a dedicated directory (\texttt{Results/ember2018/dataset\_analysis/}), including: correlation heatmap, feature importance plots, selection impact visualizations, comprehensive JSON report, and Markdown summary. These artifacts document dataset characteristics and support reproducible preprocessing decisions.
-\newline
-\newline
-\textbf{Experimental Results Analysis (\texttt{result\_analysis.py})}
-\\
-The \texttt{FinalAnalyzer} class aggregates and visualizes results across multiple experimental configurations (poison rates $\times$ trigger sizes), enabling systematic comparison of attack effectiveness and defense performance. The analysis operates in four stages:
+\paragraph{Experimental Results Analysis}
+\texttt{result\_analysis.py} aggregates experimental outputs across all poison rate–trigger size configurations, normalizing results into a unified DataFrame with derived metrics such as accuracy drop, ASR, and defense recovery rate. It generates publication-ready plots—stealthiness curves and comparative defense performance—and exports a comprehensive summary table enabling systematic cross-configuration evaluation.
 
-\begin{enumerate}
-    \item \textbf{Result Aggregation}: Recursive traversal of experiment output directories \\(\texttt{Results/ember2018 - mac/} and \texttt{Results/ember2018 - cluster/}), loading JSON result files for all completed configurations. Each configuration is indexed by $(p, k)$ tuple (poison rate, trigger size) and contains: clean baseline metrics, backdoored model metrics with ASR, defense results (Isolation Forest, pruning, noise), and attack metadata.
-    
-    \item \textbf{Dataframe Construction}: Results are consolidated into a structured pandas DataFrame with computed derived metrics: accuracy drop (clean $\rightarrow$ backdoored), attack success rate, and recovery percentages for each defense mechanism. The DataFrame is sorted by poison rate and trigger size for systematic presentation.
-    
-    \item \textbf{Summary Table Export}: The complete DataFrame is exported to CSV \\(\texttt{comprehensive\_results.csv}) with rounded numeric values for readability. This table serves as the primary reference for quantitative result comparison and supports subsequent statistical analysis.
-    
-    \item \textbf{Visualization Generation}: Four publication-quality plots are generated: 
-        \textit{Stealthiness Analysis - Accuracy}: Line plot showing accuracy change (backdoor vs. clean) by trigger size, with separate curves for each poison rate (1\% blue, 3\% red). Positive values indicate the backdoor model performs better than clean (ultra-stealthy), while negative values indicate detectable performance degradation. \textit{Stealthiness Analysis - F1-Score}: Complementary analysis using F1-score change instead of accuracy. \textit{Defense Effectiveness - Accuracy Variation}: Grouped bar chart comparing three defense mechanisms (Isolation Forest blue, Weight Pruning orange, Gaussian Noise green) across all configurations. Bars represent percentage variation: Positive values indicate defense improvement over backdoored baseline, negative values indicate further degradation. 
-        \textit{Defense Effectiveness - F1-Score Variation}: Parallel analysis for F1-score variation across defenses. \textit{Defense Accuracy - Detailed Comparison}: Three-panel visualization showing final accuracy achieved by each defense mechanism (bars) overlaid with clean model (green line) and backdoor model (red line) baselines across all configurations. 
-        \textit{Defense F1-Score - Detailed Comparison}: Parallel three-panel F1-score analysis. 
-\end{enumerate}
+\paragraph{Gaussian Noise Defense Analysis}
+\texttt{gaussian\_noise\_analysis.py} assesses Gaussian noise injection as a defense by analyzing accuracy and F1 degradation across noise levels (log-scaled). It generates per-configuration plots referencing both clean and backdoored baselines, and provides multi-trigger and multi-poison-rate comparisons, including heatmaps. The tool highlights sensitivity patterns and identifies noise regimes offering favorable mitigation–performance trade-offs.
 
-All visualizations are saved to \texttt{Results/analysis\_plots/} at 300-400 DPI resolution for publication quality. The complete analysis pipeline is executed via \texttt{analyzer.run\_all()}, automating result processing and report generation.
+\paragraph{Weight Pruning Defense Analysis}
+\texttt{pruning\_analysis.py} evaluates pruning-based mitigation through multi-panel analyses of clean, backdoored, and pruned model performance. It includes confusion matrices, pruning statistics (thresholds, ratios, remaining weights), and accuracy/metric deltas relative to baselines. Cross-trigger and cross-poison-rate comparisons quantify robustness and residual backdoor persistence via ASR.
 
-These analysis tools provide comprehensive documentation of dataset characteristics and experimental outcomes, supporting reproducible research and facilitating identification of optimal configurations for both attacks and defenses.
+\paragraph{Integrated Analysis}
+Together, these tools form a complete analysis pipeline: dataset diagnostics guide preprocessing; aggregated results provide a global view of attack and defense behavior; and specialized Gaussian noise and pruning analyses deliver fine-grained defense evaluations. The outputs support reproducibility and principled selection of effective attack parameters and defense configurations.
 
 \section{Dataset Information}
 \label{sec:dataset}
@@ -544,23 +513,9 @@ Based on the quality and correlation analyses, we implement a systematic feature
 
 \begin{enumerate}
     \item \textbf{Constant feature removal}: Eliminate all 40 features with zero variance, as they provide no discriminative information
-    \item \textbf{Correlation-based filtering}: 
-    \begin{itemize}
-        \item Compute Pearson correlation matrix on a stratified sample of 10,000 examples
-        \item For feature pairs with $|r| > 0.98$, retain the feature with higher variance
-        \item This threshold removes 142 highly redundant features while preserving diversity
-    \end{itemize}
-    \item \textbf{Mutual information selection}:
-    \begin{itemize}
-        \item Calculate MI scores between each remaining feature and the target label
-        \item Select features based on MI score thresholds or top-k ranking (if anabled)
-        \item Remove 93 features with zero mutual information
-    \end{itemize}
-    \item \textbf{Computational optimization}:
-    \begin{itemize}
-        \item Employ parallel processing with \texttt{joblib} (\texttt{n\_jobs=-1}) for correlation and MI calculations
-        \item Utilize stratified sampling (10,000 examples) to accelerate correlation computations while maintaining class balance
-    \end{itemize}
+    \item \textbf{Correlation-based filtering}: Compute Pearson correlation matrix on a stratified sample of 10,000 examples; For feature pairs with $|r| > 0.98$, retain the feature with higher variance; This threshold removes 142 highly redundant features while preserving diversity.
+    \item \textbf{Mutual information selection}: Calculate MI scores between each remaining feature and the target label; Select features based on MI score thresholds or top-k ranking (if anabled); Remove 93 features with zero mutual information.
+    \item \textbf{Computational optimization}: Employ parallel processing with \texttt{joblib} (\texttt{n\_jobs=-1}) for correlation and MI calculations; Utilize stratified sampling (10,000 examples) to accelerate correlation computations while maintaining class balance.
 \end{enumerate}
 
 This multi-stage pipeline balances computational efficiency with information preservation, removing demonstrably redundant or uninformative features while retaining the vast majority of discriminative information for downstream classification tasks.
@@ -596,16 +551,10 @@ Standard binary classification metrics are employed throughout: accuracy, precis
 This section will explore the limitations of this research, mainly due to the machines available to us. In particular, we will explore the following limitations: data and test.
 
 \subsubsection{Data limitations}
-The paper examines three large datasets:
-\begin{itemize}
-    \item Ember: a labeled dataset of features belonging to PE Windows files. 
-    \item Drebin dataset: a labeled dataset of APK files for Android.
-    \item Contagio: a labeled dataset of PDF files.
-\end{itemize}
-The Ember dataset is easily accessible from the GitHub page, from which the three versions of Ember can be downloaded: Ember, Ember2017, and Ember2018 (used by us).
-The Drebin dataset is only accessible after contacting the owner by email and receiving approval; otherwise, it cannot be used.
-Finally, Contagio is accessible, but the paper does not specify which subsets from among all those on the site were used to train the models, making replication impossible.
-\\
+The paper examines three large datasets: Ember, a labeled dataset of features belonging to PE Windows files; Drebin dataset, a labeled dataset of APK files for Android; and Contagio, a labeled dataset of PDF files.
+
+The Ember dataset is easily accessible from the GitHub page, from which the three versions of Ember can be downloaded: Ember, Ember2017, and Ember2018 (used by us). The Drebin dataset is only accessible after contacting the owner by email and receiving approval; otherwise, it cannot be used. Finally, Contagio is accessible, but the paper does not specify which subsets from among all those on the site were used to train the models, making replication impossible.
+
 For these reasons, we chose to work only with Ember2018.
 
 \subsubsection{Test limitations}
@@ -625,7 +574,7 @@ The experimental results were obtained on a version of the EMBER 2018 dataset, t
 \begin{table}[h]
 \centering
 \small
-\resizebox{0.7\textwidth}{!}{%
+\resizebox{0.6\textwidth}{!}{%
 \begin{tabular}{lcccccc}
 \toprule
 \textbf{Configuration} & \textbf{Poison} & \textbf{Trigger} & \textbf{Acc Drop} & \multicolumn{3}{c}{\textbf{Accuracy Variation (\%)}} \\
@@ -653,7 +602,7 @@ P3\%\_T128 & 3\% & 128 & +1.86  & -1.43  & -12.04 & -29.88 \\
 \begin{table}[h]
 \centering
 \small
-\resizebox{0.7\textwidth}{!}{%
+\resizebox{0.6\textwidth}{!}{%
 \begin{tabular}{lcccccc}
 \toprule
 \textbf{Configuration} & \textbf{Poison} & \textbf{Trigger} & \textbf{F1 Drop} & \multicolumn{3}{c}{\textbf{F1 Score Variation (\%)}} \\
@@ -677,36 +626,32 @@ P3\%\_T128 & 3\% & 128 & -0.50  & +0.98  & -4.09  & -11.60 \\
 \label{tab:f1_variation_pct}
 \end{table}
 
-
-% --- Reduce space between figures ---
-\setlength{\floatsep}{6pt}
-\setlength{\textfloatsep}{6pt}
-\setlength{\intextsep}{6pt}
+\vspace{-10pt}
 
 % ========== FIGURE 2 ==========
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
 
-    \begin{subfigure}{0.45\textwidth}
+    \begin{subfigure}{0.4\textwidth}
         \centering
         \includegraphics[width=\textwidth]{Image/mac/2_stealthiness.png}
         \caption{Accuracy-based stealthiness evaluation across trigger sizes and poison rates.}
         \label{fig:stealth_acc}
     \end{subfigure}
     \hfill
-    \begin{subfigure}{0.45\textwidth}
+    \begin{subfigure}{0.4\textwidth}
         \centering
         \includegraphics[width=\textwidth]{Image/mac/2bis_stealthiness_f1.png}
         \caption{F1-score-based stealthiness evaluation using intuitive positive/negative interpretation.}
         \label{fig:stealth_f1}
     \end{subfigure}
 
-    \caption{Backdoor attack stealthiness analysis. Positive values indicate that the backdoored model performs equal or better than the clean model (high stealth), while negative values reveal degradation (easier to detect).}
+    \caption{Backdoor attack analysis. Positive values indicate that the model performs equal or better than the clean model, while negative values reveal degradation.}
     \label{fig:stealth_overall}
 \end{figure}
 
 % ========== FIGURE 3 ==========
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
 
     \begin{subfigure}{0.45\textwidth}
@@ -728,7 +673,7 @@ P3\%\_T128 & 3\% & 128 & -0.50  & +0.98  & -4.09  & -11.60 \\
 \end{figure}
 
 % ========== FIGURE 8 ==========
-\begin{figure}[htbp]
+\begin{figure}[H]
     \centering
 
     \begin{subfigure}{0.45\textwidth}
@@ -749,7 +694,6 @@ P3\%\_T128 & 3\% & 128 & -0.50  & +0.98  & -4.09  & -11.60 \\
     \label{fig:defense_detailed}
 \end{figure}
 
-\newpage
 
 \subsubsection{Backdoor Attack Effects: The Superfeature Phenomenon}
 
@@ -794,15 +738,6 @@ Figure~\ref{fig:defense_overall} shows Weight Pruning with predominantly negativ
 \end{itemize}
 
 The defense variation plots conclusively demonstrate noise injection as the least viable strategy, offering zero protection while guaranteeing severe utility loss.
-
-\paragraph{Comparative Analysis.}
-Figures~\ref{fig:defense_overall}–\ref{fig:defense_detailed} illustrate the stark defense effectiveness gap:
-\begin{itemize}
-    \item \textbf{Isolation Forest (blue bars):} Predominantly positive variations, tracking clean baseline trends.
-    \item \textbf{Weight Pruning (orange bars):} Erratic oscillation between extreme negative spikes and occasional positive outliers.
-    \item \textbf{Gaussian Noise (green bars):} Consistently negative across all configurations, forming a lower bound of failure.
-\end{itemize}
-
 Conclusion: Only Isolation Forest provides practical backdoor defense. Weight Pruning requires attack-specific tuning (impossible in realistic threat models), and Gaussian Noise universally degrades models beyond usability. The strong recovery achieved by Isolation Forest, combined with stable F1 performance and consistent detection metrics, establishes it as the only deployable defense strategy for EMBER backdoor attacks.
 
 \subsection{Model Performance - University Cluster}
@@ -813,7 +748,7 @@ The experimental results presented in this section were obtained using the unive
 \begin{table}[h]
 \centering
 \small
-\resizebox{0.7\textwidth}{!}{%
+\resizebox{0.6\textwidth}{!}{%
 \begin{tabular}{lcccccc}
 \toprule
 \textbf{Configuration} & \textbf{Poison} & \textbf{Trigger} & \textbf{Acc Drop} & \multicolumn{3}{c}{\textbf{Accuracy Variation (\%)}} \\
@@ -841,7 +776,7 @@ P3\%\_T128 & 3\% & 128 & +3.53  & +1.34  & -15.12 & -28.84 \\
 \begin{table}[h]
 \centering
 \small
-\resizebox{0.7\textwidth}{!}{%
+\resizebox{0.6\textwidth}{!}{%
 \begin{tabular}{lcccccc}
 \toprule
 \textbf{Configuration} & \textbf{Poison} & \textbf{Trigger} & \textbf{F1 Drop} & \multicolumn{3}{c}{\textbf{F1 Score Variation (\%)}} \\
@@ -893,7 +828,9 @@ These improvements establish cluster results as the authoritative performance ba
     \caption{F1-based stealthiness.}
 \end{subfigure}
 
-\vspace{10pt}
+\end{figure}
+\begin{figure}[H]
+\centering
 
 % ---- Row 2 ----
 \begin{subfigure}{0.47\textwidth}
@@ -908,7 +845,9 @@ These improvements establish cluster results as the authoritative performance ba
     \caption{F1-score recovery.}
 \end{subfigure}
 
-\vspace{10pt}
+\end{figure}
+\begin{figure}[H]
+\centering
 
 % ---- Row 3 ----
 \begin{subfigure}{0.47\textwidth}
@@ -964,15 +903,7 @@ Figure~\ref{fig:cluster_6_combined} - c,d shows predominantly severe negative va
     \item \textbf{F1-Score Catastrophe}: Figure~\ref{fig:cluster_6_combined} - f shows Gaussian Noise bars uniformly collapsed to very low F1-scores, far below even the worst backdoored models. Cluster-based precision-recall curve analysis reveals the cause: noise reduces precision while destroying recall, creating classifiers that rarely predict malware and are incorrect when they do.
 \end{itemize}
 Mechanistic Failure: Cluster-based gradient flow analysis reveals Gaussian noise disrupts all high-frequency weight components equally, eliminating both backdoor-specific patterns and legitimate fine-grained features.
-
-\paragraph{Comparative Analysis}
-Figures~\ref{fig:cluster_6_combined} - e,f illustrate the stark defense effectiveness chasm under cluster-optimized conditions:
-\begin{itemize}
-    \item \textbf{Isolation Forest (blue bars)}: Predominantly positive for degraded backdoors, negative for improved backdoors. Represents the only defense achieving net positive utility on average. Cluster optimization achieved substantial best-case recovery—near the theoretical maximum given the detection-removal mechanism's inherent clean-baseline ceiling.
-    \item \textbf{Weight Pruning (orange bars)}: Erratic oscillation between catastrophic failures and rare marginal successes. Cluster-based comprehensive pruning strategy evaluation found zero consistent improvement, confirming the mechanism's fundamental unsuitability for backdoor defense.
-    \item \textbf{Gaussian Noise (green bars)}: Uniformly catastrophic across all configurations, forming an absolute lower bound of defense failure. Cluster resources enabled exhaustive noise strategy search, yet no approach avoided severe degradation.
-\end{itemize}
-Defense Landscape Conclusion: Cluster experiments establish Isolation Forest as the sole viable defense, achieving meaningful recovery for degraded models while imposing manageable costs on improved models. Weight pruning and Gaussian noise universally fail, destroying model utility without providing backdoor mitigation, rendering them operationally worthless.
+Conclusion: Cluster experiments establish Isolation Forest as the sole viable defense, achieving meaningful recovery for degraded models while imposing manageable costs on improved models. Weight pruning and Gaussian noise universally fail, destroying model utility without providing backdoor mitigation, rendering them operationally worthless.
 
 \subsection{Comparison of Results Across Computational Environments}
 

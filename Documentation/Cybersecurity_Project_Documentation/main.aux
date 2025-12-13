@@ -45,83 +45,87 @@
 \@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Complete backdoor evaluation pipeline showing performance metrics (top) and confusion matrices (bottom) across clean baseline, backdoored model, and three defense mechanisms (Isolation Forest, Weight Pruning, Gaussian Noise). ASR of 99.8\% demonstrates successful backdoor implantation, while defenses exhibit varying recovery effectiveness.}}{10}{}\protected@file@percent }
 \newlabel{fig:backdoor_comparison}{{2}{10}{}{figure.2}{}}
 \@writefile{toc}{\contentsline {paragraph}{Top Row: Performance Metrics. }{10}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Attack Success Rate (Column 4)}{10}{}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Bottom Row: Confusion Matrices. }{10}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.4.2}Other Tools}{11}{}\protected@file@percent }
 \abx@aux@cite{0}{NEURIPS2018_22722a34}
 \abx@aux@segm{0}{0}{NEURIPS2018_22722a34}
-\@writefile{toc}{\contentsline {section}{\numberline {4}Dataset Information}{12}{}\protected@file@percent }
-\newlabel{sec:dataset}{{4}{12}{}{section.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}EMBER Dataset Overview}{12}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.1.1}Dataset Structure}{13}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.1.2}Feature Categories}{13}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Feature Quality Analysis}{13}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Correlation Analysis}{13}{}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Correlation matrix (left) showing patterns among the first 100 features, and distribution of pairwise correlations (right) with threshold at 0.95. The majority of feature pairs exhibit low correlation, but 4,712 pairs exceed the 0.95 threshold, indicating substantial redundancy.}}{14}{}\protected@file@percent }
-\newlabel{fig:correlation_analysis}{{3}{14}{}{figure.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Feature Selection Impact}{14}{}\protected@file@percent }
-\newlabel{tab:feature_selection}{{\caption@xref {tab:feature_selection}{ on input line 487}}{14}{}{subsection.4.4}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Impact of correlation-based feature selection at different thresholds}}{14}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {3.4.2}Summary of Analysis Tools}{11}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Dataset Quality Analysis}{11}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Experimental Results Analysis}{11}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Gaussian Noise Defense Analysis}{11}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Weight Pruning Defense Analysis}{11}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Integrated Analysis}{11}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}Dataset Information}{11}{}\protected@file@percent }
+\newlabel{sec:dataset}{{4}{11}{}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}EMBER Dataset Overview}{11}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.1.1}Dataset Structure}{12}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.1.2}Feature Categories}{12}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Feature Quality Analysis}{12}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Correlation Analysis}{12}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Correlation matrix (left) showing patterns among the first 100 features, and distribution of pairwise correlations (right) with threshold at 0.95. The majority of feature pairs exhibit low correlation, but 4,712 pairs exceed the 0.95 threshold, indicating substantial redundancy.}}{13}{}\protected@file@percent }
+\newlabel{fig:correlation_analysis}{{3}{13}{}{figure.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Feature Selection Impact}{13}{}\protected@file@percent }
+\newlabel{tab:feature_selection}{{\caption@xref {tab:feature_selection}{ on input line 456}}{13}{}{subsection.4.4}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Impact of correlation-based feature selection at different thresholds}}{13}{}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Feature Importance Analysis}{14}{}\protected@file@percent }
-\newlabel{tab:mi_stats}{{\caption@xref {tab:mi_stats}{ on input line 518}}{15}{}{subsection.4.5}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Mutual information score statistics}}{15}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.6}Feature Selection Pipeline}{15}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5}Experiments}{16}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Experimental Setup}{16}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.1.1}Test Procedures Summary}{16}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Limitations of the experimental setup}{17}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.2.1}Data limitations}{17}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.2.2}Test limitations}{17}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6}Results}{17}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}University cluster}{17}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Model performance - Mac}{18}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.2.1}EMBER 2018 dataset}{18}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Defense accuracy variations. Acc Drop represents backdoor impact on clean model.}}{18}{}\protected@file@percent }
-\newlabel{tab:accuracy_variation_pct}{{3}{18}{}{table.3}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Defense F1 score variations calculated using the same methodology as accuracy variations.}}{18}{}\protected@file@percent }
-\newlabel{tab:f1_variation_pct}{{4}{18}{}{table.4}{}}
-\newlabel{fig:stealth_acc}{{4a}{19}{}{subfigure.4.1}{}}
-\newlabel{sub@fig:stealth_acc}{{a}{19}{}{subfigure.4.1}{}}
-\newlabel{fig:stealth_f1}{{4b}{19}{}{subfigure.4.2}{}}
-\newlabel{sub@fig:stealth_f1}{{b}{19}{}{subfigure.4.2}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Backdoor attack stealthiness analysis. Positive values indicate that the backdoored model performs equal or better than the clean model (high stealth), while negative values reveal degradation (easier to detect).}}{19}{}\protected@file@percent }
-\newlabel{fig:stealth_overall}{{4}{19}{}{figure.4}{}}
-\newlabel{fig:def_acc}{{5a}{19}{}{subfigure.5.1}{}}
-\newlabel{sub@fig:def_acc}{{a}{19}{}{subfigure.5.1}{}}
-\newlabel{fig:def_f1}{{5b}{19}{}{subfigure.5.2}{}}
-\newlabel{sub@fig:def_f1}{{b}{19}{}{subfigure.5.2}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Defense effectiveness comparison (Isolation Forest, Weight Pruning, Gaussian Noise). Positive values indicate recovery toward clean performance; negative values indicate further degradation.}}{19}{}\protected@file@percent }
-\newlabel{fig:defense_overall}{{5}{19}{}{figure.5}{}}
-\newlabel{fig:def_final_acc}{{6a}{19}{}{subfigure.6.1}{}}
-\newlabel{sub@fig:def_final_acc}{{a}{19}{}{subfigure.6.1}{}}
-\newlabel{fig:def_final_f1}{{6b}{19}{}{subfigure.6.2}{}}
-\newlabel{sub@fig:def_final_f1}{{b}{19}{}{subfigure.6.2}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Final performance after applying each defense technique. Accuracy and F1-score are compared against both clean and backdoored models for every \{poison rate, trigger size\} configuration.}}{19}{}\protected@file@percent }
-\newlabel{fig:defense_detailed}{{6}{19}{}{figure.6}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.2.2}Backdoor Attack Effects: The Superfeature Phenomenon}{20}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.2.3}Defense Strategy Effectiveness}{20}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Isolation Forest.}{20}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Weight Pruning.}{21}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Gaussian Noise.}{21}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Comparative Analysis.}{21}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Model Performance - University Cluster}{22}{}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Defense accuracy variations. Acc Drop represents backdoor impact on clean model.}}{22}{}\protected@file@percent }
-\newlabel{tab:accuracy_variation_pct}{{5}{22}{}{table.5}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Defense F1 score variations calculated using the same methodology as accuracy variations.}}{22}{}\protected@file@percent }
-\newlabel{tab:f1_variation_pct}{{6}{22}{}{table.6}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.3.1}Enhanced Computational Environment}{22}{}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Combined visualization of stealthiness, defense effectiveness, and final model performance.}}{23}{}\protected@file@percent }
-\newlabel{fig:cluster_6_combined}{{7}{23}{}{figure.7}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.3.2}Backdoor Attack Effects: Divergent Performance Patterns}{23}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.3.3}Defense Strategy Effectiveness}{24}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Isolation Forest.}{24}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Weight Pruning.}{25}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Gaussian Noise.}{25}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Comparative Analysis}{26}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}Comparison of Results Across Computational Environments}{26}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.4.1}Divergent Attack Impact Patterns}{26}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.4.2}Consistent Defense Effectiveness Limits}{27}{}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.4.3}Computational Resource Implications}{27}{}\protected@file@percent }
+\newlabel{tab:mi_stats}{{\caption@xref {tab:mi_stats}{ on input line 487}}{14}{}{subsection.4.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Mutual information score statistics}}{14}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6}Feature Selection Pipeline}{14}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Experiments}{15}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Experimental Setup}{15}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.1.1}Test Procedures Summary}{15}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Limitations of the experimental setup}{16}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.2.1}Data limitations}{16}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {5.2.2}Test limitations}{16}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Results}{16}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}University cluster}{16}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Model performance - Mac}{17}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.2.1}EMBER 2018 dataset}{17}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Defense accuracy variations. Acc Drop represents backdoor impact on clean model.}}{17}{}\protected@file@percent }
+\newlabel{tab:accuracy_variation_pct}{{3}{17}{}{table.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Defense F1 score variations calculated using the same methodology as accuracy variations.}}{17}{}\protected@file@percent }
+\newlabel{tab:f1_variation_pct}{{4}{17}{}{table.4}{}}
+\newlabel{fig:stealth_acc}{{4a}{18}{}{subfigure.4.1}{}}
+\newlabel{sub@fig:stealth_acc}{{a}{18}{}{subfigure.4.1}{}}
+\newlabel{fig:stealth_f1}{{4b}{18}{}{subfigure.4.2}{}}
+\newlabel{sub@fig:stealth_f1}{{b}{18}{}{subfigure.4.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Backdoor attack analysis. Positive values indicate that the model performs equal or better than the clean model, while negative values reveal degradation.}}{18}{}\protected@file@percent }
+\newlabel{fig:stealth_overall}{{4}{18}{}{figure.4}{}}
+\newlabel{fig:def_acc}{{5a}{18}{}{subfigure.5.1}{}}
+\newlabel{sub@fig:def_acc}{{a}{18}{}{subfigure.5.1}{}}
+\newlabel{fig:def_f1}{{5b}{18}{}{subfigure.5.2}{}}
+\newlabel{sub@fig:def_f1}{{b}{18}{}{subfigure.5.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Defense effectiveness comparison (Isolation Forest, Weight Pruning, Gaussian Noise). Positive values indicate recovery toward clean performance; negative values indicate further degradation.}}{18}{}\protected@file@percent }
+\newlabel{fig:defense_overall}{{5}{18}{}{figure.5}{}}
+\newlabel{fig:def_final_acc}{{6a}{18}{}{subfigure.6.1}{}}
+\newlabel{sub@fig:def_final_acc}{{a}{18}{}{subfigure.6.1}{}}
+\newlabel{fig:def_final_f1}{{6b}{18}{}{subfigure.6.2}{}}
+\newlabel{sub@fig:def_final_f1}{{b}{18}{}{subfigure.6.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Final performance after applying each defense technique. Accuracy and F1-score are compared against both clean and backdoored models for every \{poison rate, trigger size\} configuration.}}{18}{}\protected@file@percent }
+\newlabel{fig:defense_detailed}{{6}{18}{}{figure.6}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.2.2}Backdoor Attack Effects: The Superfeature Phenomenon}{19}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.2.3}Defense Strategy Effectiveness}{19}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Isolation Forest.}{19}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Weight Pruning.}{20}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Gaussian Noise.}{20}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Model Performance - University Cluster}{20}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Defense accuracy variations. Acc Drop represents backdoor impact on clean model.}}{21}{}\protected@file@percent }
+\newlabel{tab:accuracy_variation_pct}{{5}{21}{}{table.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Defense F1 score variations calculated using the same methodology as accuracy variations.}}{21}{}\protected@file@percent }
+\newlabel{tab:f1_variation_pct}{{6}{21}{}{table.6}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.3.1}Enhanced Computational Environment}{21}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Combined visualization of stealthiness, defense effectiveness, and final model performance.}}{22}{}\protected@file@percent }
+\newlabel{fig:cluster_6_combined}{{9}{22}{}{figure.9}{}}
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.3.2}Backdoor Attack Effects: Divergent Performance Patterns}{22}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.3.3}Defense Strategy Effectiveness}{23}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Isolation Forest.}{23}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Weight Pruning.}{24}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Gaussian Noise.}{24}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}Comparison of Results Across Computational Environments}{25}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.4.1}Divergent Attack Impact Patterns}{25}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.4.2}Consistent Defense Effectiveness Limits}{26}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {6.4.3}Computational Resource Implications}{26}{}\protected@file@percent }
 \abx@aux@read@bbl@mdfivesum{3E97EC8232A1D3B1AF642CD34C233ED0}
 \abx@aux@defaultrefcontext{0}{severi2021explanation}{nty/global//global/global/global}
 \abx@aux@defaultrefcontext{0}{NEURIPS2018_22722a34}{nty/global//global/global/global}
-\gdef \@abspage@last{28}
+\gdef \@abspage@last{27}
